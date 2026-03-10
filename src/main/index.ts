@@ -301,14 +301,23 @@ ipcMain.on('restore-window', () => {
   updateTrayMenu()
 })
 
+let resizeTimer: ReturnType<typeof setTimeout> | null = null
+
 ipcMain.on('resize-window', (_event, width: number, height: number) => {
   if (!mainWindow) return
-  // getBoundingClientRect returns CSS pixels — multiply by zoom factor for device pixels
-  const zoomFactor = mainWindow.webContents.getZoomFactor()
-  const scaledWidth = Math.round(width * zoomFactor)
-  const scaledHeight = Math.round(height * zoomFactor)
-  const clampedHeight = Math.max(100, Math.min(2000, scaledHeight))
-  mainWindow.setContentSize(scaledWidth, clampedHeight)
+  // Debounce to prevent rapid resize calls during zoom
+  if (resizeTimer) clearTimeout(resizeTimer)
+  resizeTimer = setTimeout(() => {
+    if (!mainWindow) return
+    try {
+      const zoomFactor = mainWindow.webContents.getZoomFactor()
+      const scaledWidth = Math.max(100, Math.min(1200, Math.round(width * zoomFactor)))
+      const scaledHeight = Math.max(100, Math.min(1200, Math.round(height * zoomFactor)))
+      mainWindow.setContentSize(scaledWidth, scaledHeight)
+    } catch {
+      // Window may have been destroyed during timeout
+    }
+  }, 50)
 })
 
 // Preference IPC handlers
