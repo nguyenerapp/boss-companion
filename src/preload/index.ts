@@ -12,11 +12,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.removeListener('status-update', handler)
     }
   },
-  dragStart: (x: number, y: number): void => {
-    ipcRenderer.send('drag-start', { x, y })
+  dragStart: (): void => {
+    ipcRenderer.send('drag-start')
   },
-  dragMove: (x: number, y: number): void => {
-    ipcRenderer.send('drag-move', { x, y })
+  dragMove: (): void => {
+    ipcRenderer.send('drag-move')
   },
   dragEnd: (): void => {
     ipcRenderer.send('drag-end')

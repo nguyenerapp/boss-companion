@@ -52,8 +52,8 @@ export type StatusCallback = (status: BossStatus) => void
 export interface ElectronAPI {
   getStatus: () => Promise<BossStatus>
   onStatusUpdate: (callback: StatusCallback) => () => void
-  dragStart: (x: number, y: number) => void
-  dragMove: (x: number, y: number) => void
+  dragStart: () => void
+  dragMove: () => void
   dragEnd: () => void
   copyToClipboard: (text: string) => void
   showContextMenu: () => void

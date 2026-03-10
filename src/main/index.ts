@@ -280,17 +280,19 @@ ipcMain.on('show-context-menu', (event) => {
   menu.popup({ window: win })
 })
 
-// Drag support
+// Drag support — uses screen coordinates from the main process
 let dragState: { startX: number; startY: number; winX: number; winY: number } | null = null
 
-ipcMain.on('drag-start', (_event, { x, y }: { x: number; y: number }) => {
+ipcMain.on('drag-start', () => {
   if (!mainWindow) return
+  const { x, y } = screen.getCursorScreenPoint()
   const [winX, winY] = mainWindow.getPosition()
   dragState = { startX: x, startY: y, winX, winY }
 })
 
-ipcMain.on('drag-move', (_event, { x, y }: { x: number; y: number }) => {
+ipcMain.on('drag-move', () => {
   if (!mainWindow || !dragState) return
+  const { x, y } = screen.getCursorScreenPoint()
   const newX = dragState.winX + (x - dragState.startX)
   const newY = dragState.winY + (y - dragState.startY)
   mainWindow.setPosition(newX, newY)

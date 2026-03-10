@@ -1,4 +1,4 @@
-import { useRef, useCallback, type ReactNode } from 'react'
+import { useRef, useCallback, useEffect, type ReactNode } from 'react'
 import { useStatus } from './hooks/useStatus'
 import BossCharacter from './components/BossCharacter'
 import AgentPanel from './components/AgentPanel'
@@ -10,6 +10,7 @@ import './App.css'
 function App(): ReactNode {
   const { status, previousState } = useStatus()
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isDraggingRef = useRef(false)
 
   const stateColor = STATE_COLORS[status.state] || '#6b7280'
 
@@ -41,6 +42,34 @@ function App(): ReactNode {
     }
   }, [handleDoubleClick])
 
+  // Drag handler — mousedown on pet-area starts drag
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return // left click only
+    isDraggingRef.current = true
+    window.electronAPI.dragStart()
+  }, [])
+
+  // Document-level listeners for drag move/end (ensures drag continues outside pet-area)
+  useEffect(() => {
+    const onMouseMove = (): void => {
+      if (isDraggingRef.current) {
+        window.electronAPI.dragMove()
+      }
+    }
+    const onMouseUp = (): void => {
+      if (isDraggingRef.current) {
+        isDraggingRef.current = false
+        window.electronAPI.dragEnd()
+      }
+    }
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+    return () => {
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+    }
+  }, [])
+
   return (
     <div
       className="app-container"
@@ -51,11 +80,12 @@ function App(): ReactNode {
         <span className="status-action">{status.action}</span>
       </div>
 
-      {/* Pet character area */}
+      {/* Pet character area — draggable */}
       <div
         className={`pet-area ${isTransitioning ? 'pet-area--transitioning' : ''}`}
         style={{ borderColor: stateColor }}
         onClick={handleClick}
+        onMouseDown={handleMouseDown}
       >
         <BossCharacter state={status.state} color={stateColor} />
         <span className="pet-state" style={{ color: stateColor }}>
