@@ -71,11 +71,8 @@ async function writePreferences(prefs: Preferences): Promise<void> {
   currentDisplayMode = prefs.displayMode
   const newScale = prefs.scale ?? 1.0
   currentScale = newScale
-  // Update window size constraints for new scale
+  // Notify renderer of preference change
   if (mainWindow) {
-    const scaledWidth = Math.round(BASE_WIDTH * currentScale)
-    mainWindow.setMinimumSize(scaledWidth, 100)
-    mainWindow.setMaximumSize(scaledWidth, Math.round(800 * currentScale))
     mainWindow.webContents.send('preferences-update', prefs)
   }
   // Rebuild context menu to reflect new selection
@@ -219,8 +216,6 @@ function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: scaledWidth,
     height: Math.round(400 * currentScale),
-    minWidth: scaledWidth,
-    maxWidth: scaledWidth,
     x: width - 300,
     y: height - 420,
     transparent: true,
