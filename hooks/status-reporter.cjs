@@ -75,6 +75,13 @@ function loadAgents() {
   try {
     if (existsSync(AGENTS_FILE)) {
       activeAgents = JSON.parse(require("fs").readFileSync(AGENTS_FILE, "utf-8"));
+      // Auto-cleanup: remove completed/failed agents older than 2 minutes
+      const twoMinAgo = Date.now() - 2 * 60 * 1000;
+      const before = activeAgents.length;
+      activeAgents = activeAgents.filter(
+        (a) => a.state === "running" || a.startedAt > twoMinAgo
+      );
+      if (activeAgents.length !== before) saveAgents();
     }
   } catch {
     activeAgents = [];
