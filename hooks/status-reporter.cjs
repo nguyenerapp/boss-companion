@@ -29,6 +29,8 @@ const { randomUUID } = require("crypto");
 
 const STATUS_DIR = join(homedir(), ".boss-companion");
 const STATUS_FILE = join(STATUS_DIR, "status.json");
+const AGENTS_FILE = join(STATUS_DIR, "agents.json");
+const EVENTLOOP_FILE = join(STATUS_DIR, "eventloop.json");
 
 // Tool name to human-readable action mapping
 const TOOL_ACTIONS = {
@@ -66,8 +68,37 @@ const TOOL_STATES = {
   AskUserQuestion: "waiting",
 };
 
-// In-memory agent tracking
+// Persistent agent tracking (each hook invocation is a separate process)
 let activeAgents = [];
+
+function loadAgents() {
+  try {
+    if (existsSync(AGENTS_FILE)) {
+      activeAgents = JSON.parse(require("fs").readFileSync(AGENTS_FILE, "utf-8"));
+    }
+  } catch {
+    activeAgents = [];
+  }
+}
+
+function saveAgents() {
+  try {
+    require("fs").writeFileSync(AGENTS_FILE, JSON.stringify(activeAgents));
+  } catch {
+    // best effort
+  }
+}
+
+function readEventLoopPhase() {
+  try {
+    if (existsSync(EVENTLOOP_FILE)) {
+      return JSON.parse(require("fs").readFileSync(EVENTLOOP_FILE, "utf-8"));
+    }
+  } catch {
+    // ignore
+  }
+  return { phase: "idle" };
+}
 
 // Serialized write queue to prevent corruption
 let writeChain = Promise.resolve();
@@ -109,7 +140,7 @@ async function writeStatus(state, action, extraFields = {}) {
       action,
       agents: activeAgents,
       discord: current.discord || { pending: 0 },
-      eventLoop: current.eventLoop || { phase: "idle" },
+      eventLoop: readEventLoopPhase(),
       tokens: current.tokens || { context: 0, output: 0 },
       timestamp: Date.now(),
       ...extraFields,
@@ -167,10 +198,16 @@ function countPendingDiscord() {
   try {
     if (!existsSync(fqDir)) return 0;
     const { readdirSync } = require("fs");
-    const files = readdirSync(fqDir).filter(
-      (f) => f.startsWith("fq_") && !f.endsWith(".read")
+    const files = readdirSync(fqDir);
+    // Build a set of read markers (basenames with .read files)
+    const readSet = new Set(
+      files.filter((f) => f.endsWith(".read")).map((f) => f.replace(".read", ""))
     );
-    return files.length;
+    // Count .txt files that don't have a corresponding .read marker
+    const unread = files.filter(
+      (f) => f.startsWith("fq_") && f.endsWith(".txt") && !readSet.has(f.replace(".txt", ""))
+    );
+    return unread.length;
   } catch {
     return 0;
   }
@@ -184,12 +221,16 @@ function getLastDiscordMessage() {
   try {
     if (!existsSync(fqDir)) return undefined;
     const { readdirSync, readFileSync } = require("fs");
-    const files = readdirSync(fqDir)
-      .filter((f) => f.startsWith("fq_") && !f.endsWith(".read"))
+    const allFiles = readdirSync(fqDir);
+    const readSet = new Set(
+      allFiles.filter((f) => f.endsWith(".read")).map((f) => f.replace(".read", ""))
+    );
+    const unread = allFiles
+      .filter((f) => f.startsWith("fq_") && f.endsWith(".txt") && !readSet.has(f.replace(".txt", "")))
       .sort()
       .reverse();
-    if (files.length === 0) return undefined;
-    const content = readFileSync(join(fqDir, files[0]), "utf-8").trim();
+    if (unread.length === 0) return undefined;
+    const content = readFileSync(join(fqDir, unread[0]), "utf-8").trim();
     // Return first 80 chars as preview
     return content.length > 80 ? content.slice(0, 80) + "..." : content;
   } catch {
@@ -198,6 +239,8 @@ function getLastDiscordMessage() {
 }
 
 async function handleEvent(event) {
+  loadAgents();
+
   const {
     hook_event_name,
     tool_name,
@@ -250,7 +293,7 @@ async function handleEvent(event) {
         action = `Searching for "${pat}${tool_input.pattern.length > 20 ? "..." : ""}"...`;
       } else if (tool_name === "Agent" && tool_input?.description) {
         action = `Delegating: ${tool_input.description.slice(0, 40)}...`;
-        // Track this agent
+        // Track this agent (persisted across hook invocations)
         const agentId = `agent-${Date.now()}`;
         activeAgents.push({
           id: agentId,
@@ -258,6 +301,7 @@ async function handleEvent(event) {
           state: "running",
           startedAt: Date.now(),
         });
+        saveAgents();
       } else if (tool_name === "Skill" && tool_input?.skill) {
         action = `Running skill: ${tool_input.skill}`;
       }
@@ -288,6 +332,7 @@ async function handleEvent(event) {
       activeAgents = activeAgents.filter(
         (a) => a.state === "running" || a.startedAt > fiveMinAgo
       );
+      saveAgents();
 
       const runningCount = activeAgents.filter(
         (a) => a.state === "running"
@@ -308,12 +353,14 @@ async function handleEvent(event) {
 
     case "SessionStart": {
       activeAgents = [];
+      saveAgents();
       await writeStatus("idle", "Session started!", extraFields);
       break;
     }
 
     case "SessionEnd": {
       activeAgents = [];
+      saveAgents();
       await writeStatus("idle", "Session ended", extraFields);
       break;
     }

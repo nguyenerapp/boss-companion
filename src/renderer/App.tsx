@@ -182,7 +182,7 @@ function App(): ReactNode {
 
         {(status.tokens.context > 0 || status.tokens.output > 0) && (
           <div className="token-badge">
-            {Math.round(status.tokens.context / 1000)}k / {Math.round(status.tokens.output / 1000)}k
+            {status.tokens.context >= 1000 ? `${Math.round(status.tokens.context / 1000)}k` : status.tokens.context} / {status.tokens.output >= 1000 ? `${Math.round(status.tokens.output / 1000)}k` : status.tokens.output}
           </div>
         )}
       </div>
