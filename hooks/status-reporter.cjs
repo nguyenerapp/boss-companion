@@ -256,17 +256,20 @@ async function handleEvent(event) {
     transcript_path,
   } = event;
 
-  // Parse token usage from transcript
-  const tokens = (await parseTranscriptUsage(transcript_path)) || {
-    context: 0,
-    output: 0,
-  };
-  const discordPending = countPendingDiscord();
-  const lastMessage = getLastDiscordMessage();
-  const extraFields = {
-    tokens,
-    discord: { pending: discordPending, lastMessage },
-  };
+  // Fast path for SubagentStop — skip expensive transcript parsing and Discord checks.
+  // Agent state update is the only thing that matters here.
+  const isSubagentStop = hook_event_name === "SubagentStop";
+
+  // Only parse transcript for non-frequent events (skip for PostToolUse and SubagentStop)
+  const skipExpensiveOps = isSubagentStop || hook_event_name === "PostToolUse";
+  const tokens = skipExpensiveOps
+    ? { context: 0, output: 0 }
+    : (await parseTranscriptUsage(transcript_path)) || { context: 0, output: 0 };
+  const discordPending = skipExpensiveOps ? 0 : countPendingDiscord();
+  const lastMessage = skipExpensiveOps ? undefined : getLastDiscordMessage();
+  const extraFields = skipExpensiveOps
+    ? {} // Preserve existing tokens/discord from status file
+    : { tokens, discord: { pending: discordPending, lastMessage } };
 
   switch (hook_event_name) {
     case "UserPromptSubmit": {
