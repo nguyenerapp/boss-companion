@@ -308,9 +308,12 @@ ipcMain.on('restore-window', () => {
 
 ipcMain.on('resize-window', (_event, width: number, height: number) => {
   if (!mainWindow) return
-  // Renderer sends post-transform (visual) dimensions via getBoundingClientRect
-  const clampedHeight = Math.max(100, Math.min(800, height))
-  mainWindow.setContentSize(width, clampedHeight)
+  // getBoundingClientRect returns CSS pixels — multiply by zoom factor for device pixels
+  const zoomFactor = mainWindow.webContents.getZoomFactor()
+  const scaledWidth = Math.round(width * zoomFactor)
+  const scaledHeight = Math.round(height * zoomFactor)
+  const clampedHeight = Math.max(100, Math.min(2000, scaledHeight))
+  mainWindow.setContentSize(scaledWidth, clampedHeight)
 })
 
 // Preference IPC handlers
