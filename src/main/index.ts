@@ -198,6 +198,8 @@ function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 280,
     height: 400,
+    minWidth: 280,
+    maxWidth: 280,
     x: width - 300,
     y: height - 420,
     transparent: true,
@@ -205,7 +207,7 @@ function createWindow(): void {
     alwaysOnTop: true,
     skipTaskbar: true,
     hasShadow: false,
-    resizable: false,
+    resizable: true,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -274,6 +276,13 @@ ipcMain.on('restore-window', () => {
   mainWindow?.show()
   isMinimized = false
   updateTrayMenu()
+})
+
+ipcMain.on('resize-window', (_event, width: number, height: number) => {
+  if (!mainWindow) return
+  // Clamp height to reasonable bounds (min 100, max 800)
+  const clampedHeight = Math.max(100, Math.min(800, height))
+  mainWindow.setContentSize(width, clampedHeight)
 })
 
 // Preference IPC handlers

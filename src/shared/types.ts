@@ -66,6 +66,7 @@ export interface ElectronAPI {
   showContextMenu: () => void
   minimizeWindow: () => void
   restoreWindow: () => void
+  resizeWindow: (width: number, height: number) => void
   getPreferences: () => Promise<Preferences>
   setPreferences: (prefs: Preferences) => Promise<void>
   onPreferencesUpdate: (callback: (prefs: Preferences) => void) => () => void

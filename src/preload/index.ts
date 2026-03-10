@@ -33,6 +33,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   restoreWindow: (): void => {
     ipcRenderer.send('restore-window')
   },
+  resizeWindow: (width: number, height: number): void => {
+    ipcRenderer.send('resize-window', width, height)
+  },
   getPreferences: (): Promise<Preferences> => ipcRenderer.invoke('get-preferences'),
   setPreferences: (prefs: Preferences): Promise<void> => ipcRenderer.invoke('set-preferences', prefs),
   onPreferencesUpdate: (callback: (prefs: Preferences) => void): (() => void) => {

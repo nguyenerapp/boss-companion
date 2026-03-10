@@ -31,7 +31,27 @@ function App(): ReactNode {
   const isDraggingRef = useRef(false)
   const [displayMode, setDisplayMode] = useState<DisplayMode>('css-art')
 
+  const containerRef = useRef<HTMLDivElement | null>(null)
   const stateColor = STATE_COLORS[status.state] || '#6b7280'
+
+  // ResizeObserver to auto-size the Electron window to fit content
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+
+    const BUFFER = 10
+    const WIDTH = 280
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const contentHeight = Math.ceil(entry.borderBoxSize?.[0]?.blockSize ?? entry.target.getBoundingClientRect().height)
+        window.electronAPI.resizeWindow(WIDTH, contentHeight + BUFFER)
+      }
+    })
+
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   // Load preferences on mount and listen for updates
   useEffect(() => {
@@ -122,6 +142,7 @@ function App(): ReactNode {
 
   return (
     <div
+      ref={containerRef}
       className="app-container"
       onContextMenu={handleContextMenu}
     >
