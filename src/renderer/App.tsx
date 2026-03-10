@@ -1,18 +1,50 @@
-import { useRef, useCallback, useEffect, type ReactNode } from 'react'
+import { useRef, useCallback, useState, useEffect, type ReactNode } from 'react'
 import { useStatus } from './hooks/useStatus'
 import BossCharacter from './components/BossCharacter'
 import AgentPanel from './components/AgentPanel'
 import DiscordBadge from './components/DiscordBadge'
 import EventLoopPanel from './components/EventLoopPanel'
 import { STATE_COLORS } from '../shared/utils'
+import type { BossState, DisplayMode } from '../shared/types'
 import './App.css'
+
+/**
+ * Emoji mapping for each BOSS state
+ */
+const STATE_EMOJI: Record<BossState, string> = {
+  thinking: '\u{1F9E0}',
+  delegating: '\u{1F4CB}',
+  reviewing: '\u{1F50D}',
+  waiting: '\u{23F3}',
+  idle: '\u{1F634}',
+  sprinting: '\u{1F3C3}',
+  discord: '\u{1F4AC}',
+  working: '\u{26A1}',
+  reading: '\u{1F4D6}',
+  done: '\u{2705}',
+  error: '\u{274C}'
+}
 
 function App(): ReactNode {
   const { status, previousState } = useStatus()
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isDraggingRef = useRef(false)
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('css-art')
 
   const stateColor = STATE_COLORS[status.state] || '#6b7280'
+
+  // Load preferences on mount and listen for updates
+  useEffect(() => {
+    window.electronAPI.getPreferences().then((prefs) => {
+      setDisplayMode(prefs.displayMode)
+    }).catch(console.error)
+
+    const unsubscribe = window.electronAPI.onPreferencesUpdate((prefs) => {
+      setDisplayMode(prefs.displayMode)
+    })
+
+    return unsubscribe
+  }, [])
 
   // Determine transition class
   const isTransitioning = previousState !== null && previousState !== status.state
@@ -70,6 +102,24 @@ function App(): ReactNode {
     }
   }, [])
 
+  // Render character based on display mode
+  const renderCharacter = (): ReactNode => {
+    switch (displayMode) {
+      case 'css-art':
+        return <BossCharacter state={status.state} color={stateColor} />
+      case 'emoji':
+        return (
+          <span className="pet-emoji" style={{ fontSize: '48px', lineHeight: 1 }}>
+            {STATE_EMOJI[status.state] || '\u{2753}'}
+          </span>
+        )
+      case 'minimal':
+        return null
+      default:
+        return <BossCharacter state={status.state} color={stateColor} />
+    }
+  }
+
   return (
     <div
       className="app-container"
@@ -87,7 +137,7 @@ function App(): ReactNode {
         onClick={handleClick}
         onMouseDown={handleMouseDown}
       >
-        <BossCharacter state={status.state} color={stateColor} />
+        {renderCharacter()}
         <span className="pet-state" style={{ color: stateColor }}>
           {status.state.toUpperCase()}
         </span>

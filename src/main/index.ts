@@ -1,19 +1,21 @@
 import { app, BrowserWindow, ipcMain, screen, Menu, Tray, nativeImage, clipboard } from 'electron'
 import { join } from 'path'
 import { watch } from 'chokidar'
-import { readFile, mkdir } from 'fs/promises'
+import { readFile, writeFile, mkdir } from 'fs/promises'
 import { existsSync } from 'fs'
 import { homedir } from 'os'
-import type { BossStatus } from '../shared/types'
+import type { BossStatus, DisplayMode, Preferences } from '../shared/types'
 
 const STATUS_DIR = join(homedir(), '.boss-companion')
 const STATUS_FILE = join(STATUS_DIR, 'status.json')
+const PREFS_FILE = join(STATUS_DIR, 'preferences.json')
 const debug = !!process.env.COMPANION_DEBUG
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
 let lastStatus: BossStatus | null = null
 let isMinimized = false
+let currentDisplayMode: DisplayMode = 'css-art'
 
 const DEFAULT_STATUS: BossStatus = {
   state: 'idle',
@@ -38,6 +40,34 @@ async function readStatus(): Promise<BossStatus> {
   } catch {
     return { ...DEFAULT_STATUS, timestamp: Date.now() }
   }
+}
+
+const DEFAULT_PREFS: Preferences = { displayMode: 'css-art' }
+
+async function readPreferences(): Promise<Preferences> {
+  try {
+    const content = await readFile(PREFS_FILE, 'utf-8')
+    const prefs = JSON.parse(content) as Preferences
+    // Validate displayMode
+    if (!['css-art', 'emoji', 'minimal'].includes(prefs.displayMode)) {
+      return { ...DEFAULT_PREFS }
+    }
+    return prefs
+  } catch {
+    return { ...DEFAULT_PREFS }
+  }
+}
+
+async function writePreferences(prefs: Preferences): Promise<void> {
+  await ensureStatusDir()
+  await writeFile(PREFS_FILE, JSON.stringify(prefs, null, 2), 'utf-8')
+  currentDisplayMode = prefs.displayMode
+  // Notify renderer
+  if (mainWindow) {
+    mainWindow.webContents.send('preferences-update', prefs)
+  }
+  // Rebuild context menu to reflect new selection
+  updateTrayMenu()
 }
 
 /**
@@ -246,12 +276,39 @@ ipcMain.on('restore-window', () => {
   updateTrayMenu()
 })
 
+// Preference IPC handlers
+ipcMain.handle('get-preferences', async () => {
+  return await readPreferences()
+})
+
+ipcMain.handle('set-preferences', async (_event, prefs: Preferences) => {
+  await writePreferences(prefs)
+})
+
 // Context menu
 ipcMain.on('show-context-menu', (event) => {
   const win = BrowserWindow.fromWebContents(event.sender)
   if (!win) return
 
+  const displayModes: { label: string; value: DisplayMode }[] = [
+    { label: 'CSS Art', value: 'css-art' },
+    { label: 'Emoji', value: 'emoji' },
+    { label: 'Minimal', value: 'minimal' }
+  ]
+
   const template: Electron.MenuItemConstructorOptions[] = [
+    {
+      label: 'Character Style',
+      submenu: displayModes.map(({ label, value }) => ({
+        label,
+        type: 'radio' as const,
+        checked: currentDisplayMode === value,
+        click: (): void => {
+          writePreferences({ displayMode: value })
+        }
+      }))
+    },
+    { type: 'separator' },
     {
       label: 'Reset Position',
       click: (): void => {
@@ -305,6 +362,11 @@ ipcMain.on('drag-end', () => {
 app.whenReady().then(async () => {
   app.setName('BOSS Companion')
   await ensureStatusDir()
+
+  // Load saved preferences
+  const prefs = await readPreferences()
+  currentDisplayMode = prefs.displayMode
+
   createWindow()
   setupTray()
   setupStatusWatcher()

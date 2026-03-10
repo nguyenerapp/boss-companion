@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { BossStatus, StatusCallback } from '../shared/types'
+import type { BossStatus, StatusCallback, Preferences } from '../shared/types'
 
 contextBridge.exposeInMainWorld('electronAPI', {
   getStatus: (): Promise<BossStatus> => ipcRenderer.invoke('get-status'),
@@ -32,5 +32,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   restoreWindow: (): void => {
     ipcRenderer.send('restore-window')
+  },
+  getPreferences: (): Promise<Preferences> => ipcRenderer.invoke('get-preferences'),
+  setPreferences: (prefs: Preferences): Promise<void> => ipcRenderer.invoke('set-preferences', prefs),
+  onPreferencesUpdate: (callback: (prefs: Preferences) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, prefs: Preferences): void => {
+      callback(prefs)
+    }
+    ipcRenderer.on('preferences-update', handler)
+    return () => {
+      ipcRenderer.removeListener('preferences-update', handler)
+    }
   }
 })

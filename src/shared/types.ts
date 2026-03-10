@@ -46,6 +46,13 @@ export interface BossStatus {
   timestamp: number
 }
 
+// Display mode for character rendering
+export type DisplayMode = 'css-art' | 'emoji' | 'minimal'
+
+export interface Preferences {
+  displayMode: DisplayMode
+}
+
 // Callback types for IPC
 export type StatusCallback = (status: BossStatus) => void
 
@@ -59,6 +66,9 @@ export interface ElectronAPI {
   showContextMenu: () => void
   minimizeWindow: () => void
   restoreWindow: () => void
+  getPreferences: () => Promise<Preferences>
+  setPreferences: (prefs: Preferences) => Promise<void>
+  onPreferencesUpdate: (callback: (prefs: Preferences) => void) => () => void
 }
 
 declare global {
