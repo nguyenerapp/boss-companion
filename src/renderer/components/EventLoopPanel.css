@@ -1,0 +1,74 @@
+/* Event Loop Panel — phase, slot, upcoming timeline */
+
+.event-loop-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 260px;
+}
+
+.event-loop__phase {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid;
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+
+.event-loop__phase-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.event-loop__phase-label {
+  color: #d1d5db;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.event-loop__slot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid;
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+
+.event-loop__slot-name {
+  color: #93c5fd;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.event-loop__next-in {
+  font-size: 9px;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.event-loop__upcoming {
+  display: flex;
+  gap: 4px;
+  padding: 0 2px;
+}
+
+.event-loop__upcoming-slot {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  padding: 1px 6px;
+  color: #6b7280;
+  font-size: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
+}
