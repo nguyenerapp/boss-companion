@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, screen } from 'electron'
+import { app, BrowserWindow, ipcMain, screen, Menu, Tray, nativeImage, clipboard } from 'electron'
 import { join } from 'path'
 import { watch } from 'chokidar'
 import { readFile, mkdir } from 'fs/promises'
@@ -11,6 +11,9 @@ const STATUS_FILE = join(STATUS_DIR, 'status.json')
 const debug = !!process.env.COMPANION_DEBUG
 
 let mainWindow: BrowserWindow | null = null
+let tray: Tray | null = null
+let lastStatus: BossStatus | null = null
+let isMinimized = false
 
 const DEFAULT_STATUS: BossStatus = {
   state: 'idle',
@@ -35,6 +38,128 @@ async function readStatus(): Promise<BossStatus> {
   } catch {
     return { ...DEFAULT_STATUS, timestamp: Date.now() }
   }
+}
+
+/**
+ * Create a simple text-based tray icon using NativeImage
+ */
+function createTrayIcon(badge: number = 0): Electron.NativeImage {
+  // 22x22 is the standard macOS tray icon size
+  const size = 22
+  const canvas = Buffer.alloc(size * size * 4, 0) // RGBA
+
+  // Draw a simple "B" shape in white pixels
+  // Using a basic 5x7 bitmap pattern for "B", centered in 22x22
+  const bPattern = [
+    [1, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 1, 1, 1, 0],
+  ]
+
+  const offsetX = 4
+  const offsetY = 4
+  const scale = 2
+
+  for (let row = 0; row < bPattern.length; row++) {
+    for (let col = 0; col < bPattern[row].length; col++) {
+      if (bPattern[row][col]) {
+        for (let sy = 0; sy < scale; sy++) {
+          for (let sx = 0; sx < scale; sx++) {
+            const px = offsetX + col * scale + sx
+            const py = offsetY + row * scale + sy
+            if (px < size && py < size) {
+              const idx = (py * size + px) * 4
+              canvas[idx] = 255     // R
+              canvas[idx + 1] = 255 // G
+              canvas[idx + 2] = 255 // B
+              canvas[idx + 3] = 255 // A
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Draw badge dot (red) in top-right corner if badge > 0
+  if (badge > 0) {
+    const dotRadius = 3
+    const dotCenterX = size - dotRadius - 1
+    const dotCenterY = dotRadius + 1
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const dx = x - dotCenterX
+        const dy = y - dotCenterY
+        if (dx * dx + dy * dy <= dotRadius * dotRadius) {
+          const idx = (y * size + x) * 4
+          canvas[idx] = 239     // R (red)
+          canvas[idx + 1] = 68  // G
+          canvas[idx + 2] = 68  // B
+          canvas[idx + 3] = 255 // A
+        }
+      }
+    }
+  }
+
+  const img = nativeImage.createFromBuffer(canvas, { width: size, height: size })
+  img.setTemplateImage(true)
+  return img
+}
+
+function setupTray(): void {
+  tray = new Tray(createTrayIcon(0))
+  updateTrayMenu()
+  tray.setToolTip('BOSS Companion - Idle')
+}
+
+function updateTrayMenu(): void {
+  if (!tray) return
+
+  const stateLabel = lastStatus ? `${lastStatus.state.toUpperCase()}: ${lastStatus.action}` : 'Idle'
+
+  const contextMenu = Menu.buildFromTemplate([
+    { label: stateLabel, enabled: false },
+    { type: 'separator' },
+    {
+      label: isMinimized ? 'Show Window' : 'Hide Window',
+      click: (): void => {
+        if (isMinimized) {
+          mainWindow?.show()
+          isMinimized = false
+        } else {
+          mainWindow?.hide()
+          isMinimized = true
+        }
+        updateTrayMenu()
+      }
+    },
+    { type: 'separator' },
+    {
+      label: 'Reset Position',
+      click: (): void => {
+        if (!mainWindow) return
+        const { width, height } = screen.getPrimaryDisplay().workAreaSize
+        mainWindow.setPosition(width - 300, height - 420)
+      }
+    },
+    { type: 'separator' },
+    {
+      label: 'Quit',
+      click: (): void => {
+        app.quit()
+      }
+    }
+  ])
+
+  tray.setContextMenu(contextMenu)
+
+  // Update tray icon badge and tooltip
+  const badge = lastStatus?.discord.pending ?? 0
+  tray.setImage(createTrayIcon(badge))
+  tray.setToolTip(`BOSS Companion - ${lastStatus?.state ?? 'idle'}: ${lastStatus?.action ?? 'Waiting...'}`)
 }
 
 function createWindow(): void {
@@ -87,15 +212,72 @@ function setupStatusWatcher(): void {
 }
 
 async function sendStatus(): Promise<void> {
-  if (!mainWindow) return
   const status = await readStatus()
+  lastStatus = status
+
   if (debug) console.log(`[boss-companion] state=${status.state} action="${status.action}" agents=${status.agents.length}`)
-  mainWindow.webContents.send('status-update', status)
+
+  if (mainWindow) {
+    mainWindow.webContents.send('status-update', status)
+  }
+
+  // Update tray
+  updateTrayMenu()
 }
 
 // IPC handlers
 ipcMain.handle('get-status', async () => {
   return await readStatus()
+})
+
+ipcMain.on('copy-to-clipboard', (_event, text: string) => {
+  clipboard.writeText(text)
+})
+
+ipcMain.on('minimize-window', () => {
+  mainWindow?.hide()
+  isMinimized = true
+  updateTrayMenu()
+})
+
+ipcMain.on('restore-window', () => {
+  mainWindow?.show()
+  isMinimized = false
+  updateTrayMenu()
+})
+
+// Context menu
+ipcMain.on('show-context-menu', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  if (!win) return
+
+  const template: Electron.MenuItemConstructorOptions[] = [
+    {
+      label: 'Reset Position',
+      click: (): void => {
+        const { width, height } = screen.getPrimaryDisplay().workAreaSize
+        win.setPosition(width - 300, height - 420)
+      }
+    },
+    {
+      label: debug ? 'Debug: ON' : 'Toggle Debug',
+      click: (): void => {
+        if (mainWindow) {
+          mainWindow.webContents.toggleDevTools()
+        }
+      }
+    },
+    { type: 'separator' },
+    {
+      label: 'Quit',
+      click: (): void => {
+        app.quit()
+      }
+    }
+  ]
+
+  const menu = Menu.buildFromTemplate(template)
+  menu.popup({ window: win })
 })
 
 // Drag support
@@ -122,6 +304,7 @@ app.whenReady().then(async () => {
   app.setName('BOSS Companion')
   await ensureStatusDir()
   createWindow()
+  setupTray()
   setupStatusWatcher()
 
   // Send initial status after window loads
@@ -137,5 +320,9 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   if (mainWindow === null) {
     createWindow()
+  } else if (isMinimized) {
+    mainWindow.show()
+    isMinimized = false
+    updateTrayMenu()
   }
 })

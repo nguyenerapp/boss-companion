@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import type { BossStatus } from '../../shared/types'
+import { useState, useEffect, useRef } from 'react'
+import type { BossStatus, BossState } from '../../shared/types'
 
 const DEFAULT_STATUS: BossStatus = {
   state: 'idle',
@@ -11,8 +11,15 @@ const DEFAULT_STATUS: BossStatus = {
   timestamp: Date.now()
 }
 
-export function useStatus(): BossStatus {
+interface UseStatusResult {
+  status: BossStatus
+  previousState: BossState | null
+}
+
+export function useStatus(): UseStatusResult {
   const [status, setStatus] = useState<BossStatus>(DEFAULT_STATUS)
+  const [previousState, setPreviousState] = useState<BossState | null>(null)
+  const currentStateRef = useRef<BossState>(DEFAULT_STATUS.state)
 
   useEffect(() => {
     // Fetch initial status
@@ -20,11 +27,18 @@ export function useStatus(): BossStatus {
 
     // Subscribe to updates
     const unsubscribe = window.electronAPI.onStatusUpdate((newStatus) => {
+      if (newStatus.state !== currentStateRef.current) {
+        setPreviousState(currentStateRef.current)
+        currentStateRef.current = newStatus.state
+
+        // Clear the previousState after animation duration
+        setTimeout(() => setPreviousState(null), 400)
+      }
       setStatus(newStatus)
     })
 
     return unsubscribe
   }, [])
 
-  return status
+  return { status, previousState }
 }

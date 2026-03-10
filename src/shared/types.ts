@@ -27,7 +27,8 @@ export interface DiscordStatus {
 export interface EventLoopStatus {
   phase: string
   currentSlot?: string
-  nextEvent?: string
+  nextSlotTime?: number
+  upcomingSlots?: string[]
 }
 
 export interface TokenUsage {
@@ -54,6 +55,10 @@ export interface ElectronAPI {
   dragStart: (x: number, y: number) => void
   dragMove: (x: number, y: number) => void
   dragEnd: () => void
+  copyToClipboard: (text: string) => void
+  showContextMenu: () => void
+  minimizeWindow: () => void
+  restoreWindow: () => void
 }
 
 declare global {

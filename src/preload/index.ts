@@ -20,5 +20,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   dragEnd: (): void => {
     ipcRenderer.send('drag-end')
+  },
+  copyToClipboard: (text: string): void => {
+    ipcRenderer.send('copy-to-clipboard', text)
+  },
+  showContextMenu: (): void => {
+    ipcRenderer.send('show-context-menu')
+  },
+  minimizeWindow: (): void => {
+    ipcRenderer.send('minimize-window')
+  },
+  restoreWindow: (): void => {
+    ipcRenderer.send('restore-window')
   }
 })
