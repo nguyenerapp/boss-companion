@@ -51,6 +51,7 @@ export type DisplayMode = 'css-art' | 'emoji' | 'minimal'
 
 export interface Preferences {
   displayMode: DisplayMode
+  scale?: number
 }
 
 // Callback types for IPC

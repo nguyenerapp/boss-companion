@@ -16,6 +16,9 @@ let tray: Tray | null = null
 let lastStatus: BossStatus | null = null
 let isMinimized = false
 let currentDisplayMode: DisplayMode = 'css-art'
+let currentScale: number = 1.0
+
+const BASE_WIDTH = 280
 
 const DEFAULT_STATUS: BossStatus = {
   state: 'idle',
@@ -42,7 +45,7 @@ async function readStatus(): Promise<BossStatus> {
   }
 }
 
-const DEFAULT_PREFS: Preferences = { displayMode: 'css-art' }
+const DEFAULT_PREFS: Preferences = { displayMode: 'css-art', scale: 1.0 }
 
 async function readPreferences(): Promise<Preferences> {
   try {
@@ -51,6 +54,10 @@ async function readPreferences(): Promise<Preferences> {
     // Validate displayMode
     if (!['css-art', 'emoji', 'minimal'].includes(prefs.displayMode)) {
       return { ...DEFAULT_PREFS }
+    }
+    // Validate scale
+    if (prefs.scale == null || ![0.8, 1.0, 1.3].includes(prefs.scale)) {
+      prefs.scale = 1.0
     }
     return prefs
   } catch {
@@ -62,12 +69,24 @@ async function writePreferences(prefs: Preferences): Promise<void> {
   await ensureStatusDir()
   await writeFile(PREFS_FILE, JSON.stringify(prefs, null, 2), 'utf-8')
   currentDisplayMode = prefs.displayMode
-  // Notify renderer
+  const newScale = prefs.scale ?? 1.0
+  currentScale = newScale
+  // Update window size constraints for new scale
   if (mainWindow) {
+    const scaledWidth = Math.round(BASE_WIDTH * currentScale)
+    mainWindow.setMinimumSize(scaledWidth, 100)
+    mainWindow.setMaximumSize(scaledWidth, Math.round(800 * currentScale))
     mainWindow.webContents.send('preferences-update', prefs)
   }
   // Rebuild context menu to reflect new selection
   updateTrayMenu()
+}
+
+/**
+ * Returns a snapshot of current preferences for partial updates
+ */
+function currentPrefsSnapshot(): Preferences {
+  return { displayMode: currentDisplayMode, scale: currentScale }
 }
 
 /**
@@ -195,11 +214,13 @@ function updateTrayMenu(): void {
 function createWindow(): void {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize
 
+  const scaledWidth = Math.round(BASE_WIDTH * currentScale)
+
   mainWindow = new BrowserWindow({
-    width: 280,
-    height: 400,
-    minWidth: 280,
-    maxWidth: 280,
+    width: scaledWidth,
+    height: Math.round(400 * currentScale),
+    minWidth: scaledWidth,
+    maxWidth: scaledWidth,
     x: width - 300,
     y: height - 420,
     transparent: true,
@@ -280,9 +301,12 @@ ipcMain.on('restore-window', () => {
 
 ipcMain.on('resize-window', (_event, width: number, height: number) => {
   if (!mainWindow) return
-  // Clamp height to reasonable bounds (min 100, max 800)
-  const clampedHeight = Math.max(100, Math.min(800, height))
-  mainWindow.setContentSize(width, clampedHeight)
+  // Apply scale factor — renderer sends pre-transform dimensions
+  const scaledWidth = Math.round(width * currentScale)
+  const scaledHeight = Math.round(height * currentScale)
+  // Clamp height to reasonable bounds (min 100, max 800 * scale)
+  const clampedHeight = Math.max(100, Math.min(Math.round(800 * currentScale), scaledHeight))
+  mainWindow.setContentSize(scaledWidth, clampedHeight)
 })
 
 // Preference IPC handlers
@@ -305,6 +329,12 @@ ipcMain.on('show-context-menu', (event) => {
     { label: 'Minimal', value: 'minimal' }
   ]
 
+  const sizeOptions: { label: string; value: number }[] = [
+    { label: 'Small (0.8x)', value: 0.8 },
+    { label: 'Normal (1.0x)', value: 1.0 },
+    { label: 'Large (1.3x)', value: 1.3 }
+  ]
+
   const template: Electron.MenuItemConstructorOptions[] = [
     {
       label: 'Character Style',
@@ -313,7 +343,18 @@ ipcMain.on('show-context-menu', (event) => {
         type: 'radio' as const,
         checked: currentDisplayMode === value,
         click: (): void => {
-          writePreferences({ displayMode: value })
+          writePreferences({ ...currentPrefsSnapshot(), displayMode: value })
+        }
+      }))
+    },
+    {
+      label: 'Size',
+      submenu: sizeOptions.map(({ label, value }) => ({
+        label,
+        type: 'radio' as const,
+        checked: currentScale === value,
+        click: (): void => {
+          writePreferences({ ...currentPrefsSnapshot(), scale: value })
         }
       }))
     },
@@ -375,6 +416,7 @@ app.whenReady().then(async () => {
   // Load saved preferences
   const prefs = await readPreferences()
   currentDisplayMode = prefs.displayMode
+  currentScale = prefs.scale ?? 1.0
 
   createWindow()
   setupTray()

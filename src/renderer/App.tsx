@@ -30,11 +30,13 @@ function App(): ReactNode {
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isDraggingRef = useRef(false)
   const [displayMode, setDisplayMode] = useState<DisplayMode>('css-art')
+  const [scale, setScale] = useState<number>(1.0)
 
   const containerRef = useRef<HTMLDivElement | null>(null)
   const stateColor = STATE_COLORS[status.state] || '#6b7280'
 
   // ResizeObserver to auto-size the Electron window to fit content
+  // Re-runs when scale changes so the window resizes accordingly
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
@@ -45,22 +47,25 @@ function App(): ReactNode {
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const contentHeight = Math.ceil(entry.borderBoxSize?.[0]?.blockSize ?? entry.target.getBoundingClientRect().height)
+        // Send base (pre-transform) dimensions — main process applies scale
         window.electronAPI.resizeWindow(WIDTH, contentHeight + BUFFER)
       }
     })
 
     observer.observe(el)
     return () => observer.disconnect()
-  }, [])
+  }, [scale])
 
   // Load preferences on mount and listen for updates
   useEffect(() => {
     window.electronAPI.getPreferences().then((prefs) => {
       setDisplayMode(prefs.displayMode)
+      setScale(prefs.scale ?? 1.0)
     }).catch(console.error)
 
     const unsubscribe = window.electronAPI.onPreferencesUpdate((prefs) => {
       setDisplayMode(prefs.displayMode)
+      setScale(prefs.scale ?? 1.0)
     })
 
     return unsubscribe
@@ -144,6 +149,7 @@ function App(): ReactNode {
     <div
       ref={containerRef}
       className="app-container"
+      style={scale !== 1.0 ? { transform: `scale(${scale})`, transformOrigin: 'top center' } : undefined}
       onContextMenu={handleContextMenu}
     >
       {/* Status bubble */}
