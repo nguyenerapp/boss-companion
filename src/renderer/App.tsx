@@ -36,20 +36,20 @@ function App(): ReactNode {
   const stateColor = STATE_COLORS[status.state] || '#6b7280'
 
   // ResizeObserver to auto-size the Electron window to fit content
-  // Re-runs when scale changes so the window resizes accordingly
+  // Uses getBoundingClientRect which includes CSS transforms
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
 
     const BUFFER = 10
-    const WIDTH = 280
 
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const contentHeight = Math.ceil(entry.borderBoxSize?.[0]?.blockSize ?? entry.target.getBoundingClientRect().height)
-        // Send base (pre-transform) dimensions — main process applies scale
-        window.electronAPI.resizeWindow(WIDTH, contentHeight + BUFFER)
-      }
+    const observer = new ResizeObserver(() => {
+      // getBoundingClientRect returns visual (post-transform) dimensions
+      const rect = el.getBoundingClientRect()
+      const scaledWidth = Math.ceil(rect.width)
+      const scaledHeight = Math.ceil(rect.height)
+      // Send already-scaled dimensions — main process uses them directly
+      window.electronAPI.resizeWindow(scaledWidth, scaledHeight + BUFFER)
     })
 
     observer.observe(el)

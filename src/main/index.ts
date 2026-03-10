@@ -301,12 +301,9 @@ ipcMain.on('restore-window', () => {
 
 ipcMain.on('resize-window', (_event, width: number, height: number) => {
   if (!mainWindow) return
-  // Apply scale factor — renderer sends pre-transform dimensions
-  const scaledWidth = Math.round(width * currentScale)
-  const scaledHeight = Math.round(height * currentScale)
-  // Clamp height to reasonable bounds (min 100, max 800 * scale)
-  const clampedHeight = Math.max(100, Math.min(Math.round(800 * currentScale), scaledHeight))
-  mainWindow.setContentSize(scaledWidth, clampedHeight)
+  // Renderer sends post-transform (visual) dimensions via getBoundingClientRect
+  const clampedHeight = Math.max(100, Math.min(800, height))
+  mainWindow.setContentSize(width, clampedHeight)
 })
 
 // Preference IPC handlers
