@@ -47,7 +47,7 @@ export interface BossStatus {
 }
 
 // Display mode for character rendering
-export type DisplayMode = 'css-art' | 'emoji' | 'minimal'
+export type DisplayMode = 'css-art' | 'emoji' | 'minimal' | 'call-duck'
 
 export interface Preferences {
   displayMode: DisplayMode

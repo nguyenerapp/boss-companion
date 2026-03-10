@@ -1,0 +1,544 @@
+/* ============================================
+   Call Duck Character — CSS Art Pet Display
+   Round body, tiny wings, big eyes, short bill
+   Fits within ~64x64px area
+   ============================================ */
+
+.duck {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* === Body: round white/cream circle === */
+.duck__body {
+  position: relative;
+  width: 42px;
+  height: 38px;
+  border-radius: 50% 50% 48% 48%;
+  background: radial-gradient(ellipse at 45% 40%, #fff8f0, #f5e6d3);
+  border: 2px solid var(--state-color, #6b7280);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--state-color, #6b7280) 30%, transparent);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* === Head: upper portion of body === */
+.duck__head {
+  position: absolute;
+  top: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+/* === Eyes container === */
+.duck__eyes {
+  display: flex;
+  gap: 8px;
+}
+
+/* === Eye base — big round call duck eyes === */
+.duck-eye {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #1a1a2a;
+  transition: all 0.3s ease;
+}
+
+.duck-eye--big {
+  width: 8px;
+  height: 8px;
+  background: radial-gradient(circle at 35% 35%, #444, #1a1a2a);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+/* Eye variants */
+.duck-eye--look-up {
+  position: relative;
+}
+.duck-eye--look-up::after {
+  content: '';
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #fff;
+  top: 0;
+  left: 1px;
+}
+
+.duck-eye--determined {
+  height: 6px;
+  border-radius: 4px;
+}
+
+.duck-eye--squint {
+  height: 4px;
+  border-radius: 3px;
+}
+
+.duck-eye--blink {
+  height: 2px;
+  border-radius: 1px;
+  animation: duck-blink 3s ease-in-out infinite;
+}
+
+@keyframes duck-blink {
+  0%, 45%, 55%, 100% { height: 2px; border-radius: 1px; }
+  50% { height: 8px; border-radius: 50%; }
+}
+
+.duck-eye--closed {
+  height: 2px;
+  width: 8px;
+  border-radius: 1px;
+  background: #1a1a2a;
+}
+
+.duck-eye--excited {
+  width: 10px;
+  height: 10px;
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.4),
+    0 0 3px var(--state-color, #34d399);
+}
+
+.duck-eye--focused {
+  width: 6px;
+  height: 6px;
+  box-shadow: 0 0 3px var(--state-color, #e5e7eb);
+}
+
+.duck-eye--down {
+  position: relative;
+  top: 2px;
+}
+
+.duck-eye--happy {
+  height: 4px;
+  border-radius: 0 0 5px 5px;
+  border-top: none;
+  background: #1a1a2a;
+}
+
+.duck-eye--x {
+  background: transparent;
+  position: relative;
+  width: 8px;
+  height: 8px;
+}
+.duck-eye--x::before,
+.duck-eye--x::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 2px;
+  background: #ef4444;
+  top: 3px;
+  left: 0;
+}
+.duck-eye--x::before { transform: rotate(45deg); }
+.duck-eye--x::after { transform: rotate(-45deg); }
+
+/* === Bill: short orange call duck bill === */
+.duck__bill {
+  position: relative;
+  top: 1px;
+}
+
+.bill {
+  display: block;
+  width: 10px;
+  height: 5px;
+  background: #f0943a;
+  border-radius: 0 0 5px 5px;
+  position: relative;
+}
+
+.bill--open {
+  width: 10px;
+  height: 6px;
+  background: #f0943a;
+  border-radius: 0 0 5px 5px;
+  animation: duck-quack 0.6s ease-in-out infinite;
+}
+
+@keyframes duck-quack {
+  0%, 100% { height: 5px; }
+  50% { height: 8px; border-radius: 0 0 4px 4px; }
+}
+
+.bill--smile {
+  width: 10px;
+  height: 5px;
+  background: #f0943a;
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 1px 0 #e8882e;
+}
+
+.bill--frown {
+  width: 10px;
+  height: 5px;
+  background: #d97a2a;
+  border-radius: 0 0 3px 3px;
+}
+
+.bill--sleep {
+  width: 10px;
+  height: 4px;
+  background: #e8882e;
+  border-radius: 0 0 5px 5px;
+  opacity: 0.8;
+}
+
+/* === Wings: small bumps on sides === */
+.duck__wing {
+  position: absolute;
+  width: 8px;
+  height: 14px;
+  background: radial-gradient(ellipse at center, #f5e6d3, #ecdcc8);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  top: 12px;
+  transition: transform 0.3s ease;
+}
+
+.duck__wing--left {
+  left: -4px;
+  border-radius: 6px 0 0 8px;
+  transform: rotate(5deg);
+}
+
+.duck__wing--right {
+  right: -4px;
+  border-radius: 0 6px 8px 0;
+  transform: rotate(-5deg);
+}
+
+/* === Feet: small orange V shapes === */
+.duck__feet {
+  display: flex;
+  gap: 10px;
+  margin-top: -2px;
+}
+
+.duck__foot {
+  display: block;
+  width: 8px;
+  height: 4px;
+  background: #f0943a;
+  border-radius: 0 0 3px 3px;
+  position: relative;
+}
+
+/* === Accessories (same position pattern as BossCharacter) === */
+.duck__accessory {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+}
+
+.duck-acc {
+  font-size: 14px;
+  color: var(--state-color, #e5e7eb);
+  font-weight: 700;
+  text-shadow: 0 0 4px color-mix(in srgb, var(--state-color, #6b7280) 60%, transparent);
+}
+
+.duck-acc--thought {
+  animation: duck-float 2s ease-in-out infinite;
+  font-size: 16px;
+}
+
+@keyframes duck-float {
+  0%, 100% { transform: translateY(0); opacity: 0.8; }
+  50% { transform: translateY(-4px); opacity: 1; }
+}
+
+.duck-acc--point {
+  font-size: 18px;
+  animation: duck-slide 1s ease-in-out infinite;
+}
+
+@keyframes duck-slide {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(4px); }
+}
+
+.duck-acc--magnifier {
+  font-size: 16px;
+  animation: duck-scan 2s ease-in-out infinite;
+}
+
+@keyframes duck-scan {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  25% { transform: translateX(2px) rotate(5deg); }
+  75% { transform: translateX(-2px) rotate(-5deg); }
+}
+
+.duck-acc--hourglass {
+  font-size: 14px;
+  animation: duck-rotate 3s linear infinite;
+}
+
+@keyframes duck-rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.duck-acc--zzz {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 10px;
+  font-style: italic;
+  line-height: 1;
+  animation: duck-zzz 3s ease-in-out infinite;
+}
+
+.duck-acc--zzz span:nth-child(1) {
+  font-size: 8px;
+  opacity: 0.7;
+  transform: translateX(-2px);
+}
+
+.duck-acc--zzz span:nth-child(2) {
+  font-size: 6px;
+  opacity: 0.5;
+  transform: translateX(-4px);
+}
+
+@keyframes duck-zzz {
+  0%, 100% { transform: translateY(0); opacity: 0.6; }
+  50% { transform: translateY(-3px); opacity: 1; }
+}
+
+.duck-acc--speed {
+  width: 12px;
+  height: 20px;
+  position: relative;
+  left: -60px;
+  top: 14px;
+}
+
+.duck-acc--speed::before,
+.duck-acc--speed::after {
+  content: '';
+  position: absolute;
+  height: 2px;
+  background: var(--state-color, #34d399);
+  border-radius: 1px;
+  animation: duck-speed 0.8s ease-out infinite;
+}
+
+.duck-acc--speed::before {
+  width: 12px;
+  top: 4px;
+}
+
+.duck-acc--speed::after {
+  width: 8px;
+  top: 12px;
+  animation-delay: 0.3s;
+}
+
+@keyframes duck-speed {
+  0% { opacity: 1; transform: translateX(0); }
+  100% { opacity: 0; transform: translateX(-8px); }
+}
+
+.duck-acc--chat {
+  font-size: 14px;
+  animation: duck-bounce 1s ease-in-out infinite;
+}
+
+@keyframes duck-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.duck-acc--bolt {
+  font-size: 16px;
+  animation: duck-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes duck-pulse {
+  0%, 100% { opacity: 0.7; filter: brightness(1); }
+  50% { opacity: 1; filter: brightness(1.5); }
+}
+
+.duck-acc--book {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.duck-acc--check {
+  font-size: 16px;
+  color: #22c55e;
+  animation: duck-check-pop 0.5s ease-out;
+}
+
+@keyframes duck-check-pop {
+  0% { transform: scale(0); }
+  70% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+.duck-acc--xmark {
+  font-size: 16px;
+  color: #ef4444;
+  animation: duck-shake 0.5s ease-in-out;
+}
+
+@keyframes duck-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+
+/* === State-specific body animations === */
+
+/* Thinking: head tilt + pulsing glow */
+.duck--thinking .duck__body {
+  animation: duck-think-glow 2s ease-in-out infinite;
+  transform: rotate(-5deg);
+}
+
+@keyframes duck-think-glow {
+  0%, 100% { box-shadow: 0 0 8px color-mix(in srgb, var(--state-color, #6b7280) 30%, transparent); }
+  50% { box-shadow: 0 0 16px color-mix(in srgb, var(--state-color, #6b7280) 60%, transparent); }
+}
+
+/* Delegating: wing pointing outward */
+.duck--delegating .duck__wing--right {
+  transform: rotate(-30deg) translateX(3px);
+  animation: duck-point 1s ease-in-out infinite;
+}
+
+@keyframes duck-point {
+  0%, 100% { transform: rotate(-30deg) translateX(3px); }
+  50% { transform: rotate(-35deg) translateX(5px); }
+}
+
+/* Reviewing: slight lean forward */
+.duck--reviewing .duck__body {
+  transform: rotate(3deg);
+}
+
+/* Waiting: gentle foot tap */
+.duck--waiting .duck__foot--right {
+  animation: duck-tap 1.5s ease-in-out infinite;
+}
+
+@keyframes duck-tap {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+/* Idle: dim + breathing */
+.duck--idle {
+  opacity: 0.7;
+}
+
+.duck--idle .duck__body {
+  animation: duck-breathe 4s ease-in-out infinite;
+}
+
+@keyframes duck-breathe {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.03); }
+}
+
+/* Sprinting: duck running bounce */
+.duck--sprinting .duck__body {
+  animation: duck-run 0.4s ease-in-out infinite;
+}
+
+.duck--sprinting .duck__wing--left,
+.duck--sprinting .duck__wing--right {
+  animation: duck-flap 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes duck-run {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-3px) rotate(3deg); }
+}
+
+@keyframes duck-flap {
+  0% { transform: rotate(5deg) translateY(0); }
+  100% { transform: rotate(-15deg) translateY(-3px); }
+}
+
+/* Discord: gentle bobbing */
+.duck--discord .duck__body {
+  animation: duck-bob 1s ease-in-out infinite;
+}
+
+@keyframes duck-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+/* Working: active pecking/hammering */
+.duck--working .duck__body {
+  animation: duck-work 0.8s ease-in-out infinite;
+}
+
+.duck--working .duck__body {
+  box-shadow: 0 0 8px color-mix(in srgb, var(--state-color, #6b7280) 40%, transparent);
+  animation: duck-work 0.8s ease-in-out infinite, duck-think-glow 1s ease-in-out infinite;
+}
+
+@keyframes duck-work {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(3deg) translateY(-1px); }
+  75% { transform: rotate(-3deg) translateY(1px); }
+}
+
+/* Reading: slight downward tilt */
+.duck--reading .duck__body {
+  transform: rotate(5deg);
+}
+
+/* Done: happy glow */
+.duck--done .duck__body {
+  animation: duck-done-glow 2s ease-out;
+}
+
+.duck--done .duck__wing--left {
+  transform: rotate(-15deg) translateY(-2px);
+}
+
+.duck--done .duck__wing--right {
+  transform: rotate(15deg) translateY(-2px);
+}
+
+@keyframes duck-done-glow {
+  0% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.8); }
+  100% { box-shadow: 0 0 8px rgba(34, 197, 94, 0.3); }
+}
+
+/* Error: distressed shake */
+.duck--error .duck__body {
+  animation: duck-error-shake 0.5s ease-in-out infinite, duck-error-glow 1s ease-in-out infinite;
+}
+
+@keyframes duck-error-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+@keyframes duck-error-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(239, 68, 68, 0.3); }
+  50% { box-shadow: 0 0 16px rgba(239, 68, 68, 0.7); }
+}

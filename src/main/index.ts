@@ -52,7 +52,7 @@ async function readPreferences(): Promise<Preferences> {
     const content = await readFile(PREFS_FILE, 'utf-8')
     const prefs = JSON.parse(content) as Preferences
     // Validate displayMode
-    if (!['css-art', 'emoji', 'minimal'].includes(prefs.displayMode)) {
+    if (!['css-art', 'emoji', 'minimal', 'call-duck'].includes(prefs.displayMode)) {
       return { ...DEFAULT_PREFS }
     }
     // Validate scale
@@ -336,6 +336,7 @@ ipcMain.on('show-context-menu', (event) => {
 
   const displayModes: { label: string; value: DisplayMode }[] = [
     { label: 'CSS Art', value: 'css-art' },
+    { label: 'Call Duck', value: 'call-duck' },
     { label: 'Emoji', value: 'emoji' },
     { label: 'Minimal', value: 'minimal' }
   ]
