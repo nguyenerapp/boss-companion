@@ -46,5 +46,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => {
       ipcRenderer.removeListener('preferences-update', handler)
     }
+  },
+  onZoomChanged: (callback: () => void): (() => void) => {
+    const handler = (): void => { callback() }
+    ipcRenderer.on('zoom-changed', handler)
+    return () => { ipcRenderer.removeListener('zoom-changed', handler) }
   }
 })

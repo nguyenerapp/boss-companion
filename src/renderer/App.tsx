@@ -56,6 +56,17 @@ function App(): ReactNode {
     return () => observer.disconnect()
   }, [scale])
 
+  // Listen for zoom changes (CMD+/-) and re-measure
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.onZoomChanged(() => {
+      const el = containerRef.current
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      window.electronAPI.resizeWindow(Math.ceil(rect.width), Math.ceil(rect.height) + 10)
+    })
+    return unsubscribe
+  }, [])
+
   // Load preferences on mount and listen for updates
   useEffect(() => {
     window.electronAPI.getPreferences().then((prefs) => {

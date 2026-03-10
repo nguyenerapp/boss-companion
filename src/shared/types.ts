@@ -71,6 +71,7 @@ export interface ElectronAPI {
   getPreferences: () => Promise<Preferences>
   setPreferences: (prefs: Preferences) => Promise<void>
   onPreferencesUpdate: (callback: (prefs: Preferences) => void) => () => void
+  onZoomChanged: (callback: () => void) => () => void
 }
 
 declare global {

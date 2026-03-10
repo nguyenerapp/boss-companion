@@ -238,11 +238,11 @@ function createWindow(): void {
 
   mainWindow.setIgnoreMouseEvents(false)
 
-  // Disable CMD+/- zoom — use our own scale system instead
-  mainWindow.webContents.on('before-input-event', (_event, input) => {
-    if ((input.meta || input.control) && (input.key === '=' || input.key === '-' || input.key === '+' || input.key === '0')) {
-      _event.preventDefault()
-    }
+  // Sync window size when Electron zoom level changes (CMD+/-)
+  mainWindow.webContents.on('zoom-changed', () => {
+    if (!mainWindow) return
+    // Notify renderer to re-measure and send new dimensions
+    mainWindow.webContents.send('zoom-changed')
   })
 
   if (process.env.NODE_ENV === 'development') {
