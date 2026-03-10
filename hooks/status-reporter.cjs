@@ -21,10 +21,11 @@
  * - Notification: Permission/elicitation prompts
  */
 
-const { writeFile, readFile, mkdir } = require("fs/promises");
+const { writeFile, readFile, mkdir, rename } = require("fs/promises");
 const { existsSync } = require("fs");
 const { join } = require("path");
 const { homedir } = require("os");
+const { randomUUID } = require("crypto");
 
 const STATUS_DIR = join(homedir(), ".boss-companion");
 const STATUS_FILE = join(STATUS_DIR, "status.json");
@@ -86,6 +87,16 @@ async function readCurrentStatus() {
   }
 }
 
+/**
+ * Atomic write: write to temp file then rename.
+ * Prevents the Electron watcher from reading a half-written file.
+ */
+async function atomicWriteFile(filePath, data) {
+  const tmpFile = `${filePath}.${randomUUID().slice(0, 8)}.tmp`;
+  await writeFile(tmpFile, data);
+  await rename(tmpFile, filePath);
+}
+
 async function writeStatus(state, action, extraFields = {}) {
   const task = writeChain.then(async () => {
     await ensureStatusDir();
@@ -104,7 +115,7 @@ async function writeStatus(state, action, extraFields = {}) {
       ...extraFields,
     };
 
-    await writeFile(STATUS_FILE, JSON.stringify(data, null, 2));
+    await atomicWriteFile(STATUS_FILE, JSON.stringify(data, null, 2));
   });
 
   writeChain = task.catch(() => {});
@@ -165,8 +176,35 @@ function countPendingDiscord() {
   }
 }
 
+/**
+ * Read last Discord message preview from most recent free-query file
+ */
+function getLastDiscordMessage() {
+  const fqDir = join(homedir(), ".agent", "discord", "free-queries");
+  try {
+    if (!existsSync(fqDir)) return undefined;
+    const { readdirSync, readFileSync } = require("fs");
+    const files = readdirSync(fqDir)
+      .filter((f) => f.startsWith("fq_") && !f.endsWith(".read"))
+      .sort()
+      .reverse();
+    if (files.length === 0) return undefined;
+    const content = readFileSync(join(fqDir, files[0]), "utf-8").trim();
+    // Return first 80 chars as preview
+    return content.length > 80 ? content.slice(0, 80) + "..." : content;
+  } catch {
+    return undefined;
+  }
+}
+
 async function handleEvent(event) {
-  const { hook_event_name, tool_name, tool_input, tool_response, transcript_path } = event;
+  const {
+    hook_event_name,
+    tool_name,
+    tool_input,
+    tool_response,
+    transcript_path,
+  } = event;
 
   // Parse token usage from transcript
   const tokens = (await parseTranscriptUsage(transcript_path)) || {
@@ -174,14 +212,18 @@ async function handleEvent(event) {
     output: 0,
   };
   const discordPending = countPendingDiscord();
+  const lastMessage = getLastDiscordMessage();
   const extraFields = {
     tokens,
-    discord: { pending: discordPending },
+    discord: { pending: discordPending, lastMessage },
   };
 
   switch (hook_event_name) {
     case "UserPromptSubmit": {
-      await writeStatus("thinking", "Thinking...", extraFields);
+      // Processing user input — map to 'discord' state since BOSS
+      // primarily receives input via Discord IPC
+      const state = discordPending > 0 ? "discord" : "thinking";
+      await writeStatus(state, "Processing input...", extraFields);
       break;
     }
 
@@ -228,6 +270,7 @@ async function handleEvent(event) {
       if (tool_response && tool_response.success === false) {
         await writeStatus("error", "Something went wrong...", extraFields);
       } else {
+        // After tool use, BOSS is typically thinking about next action
         await writeStatus("thinking", "Thinking...", extraFields);
       }
       break;
