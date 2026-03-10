@@ -2,6 +2,7 @@ import { useRef, useCallback, useState, useEffect, type ReactNode } from 'react'
 import { useStatus } from './hooks/useStatus'
 import BossCharacter from './components/BossCharacter'
 import DuckCharacter from './components/DuckCharacter'
+import MemePackCharacter from './components/MemePackCharacter'
 import AgentPanel from './components/AgentPanel'
 import DiscordBadge from './components/DiscordBadge'
 import EventLoopPanel from './components/EventLoopPanel'
@@ -152,6 +153,8 @@ function App(): ReactNode {
         )
       case 'call-duck':
         return <DuckCharacter state={status.state} color={stateColor} />
+      case 'meme-pack':
+        return <MemePackCharacter state={status.state} color={stateColor} />
       case 'minimal':
         return null
       default:
