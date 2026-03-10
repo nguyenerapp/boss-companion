@@ -238,6 +238,13 @@ function createWindow(): void {
 
   mainWindow.setIgnoreMouseEvents(false)
 
+  // Disable CMD+/- zoom — use our own scale system instead
+  mainWindow.webContents.on('before-input-event', (_event, input) => {
+    if ((input.meta || input.control) && (input.key === '=' || input.key === '-' || input.key === '+' || input.key === '0')) {
+      _event.preventDefault()
+    }
+  })
+
   if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:5173')
   } else {
