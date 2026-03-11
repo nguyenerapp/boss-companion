@@ -222,7 +222,7 @@ function createWindow(): void {
     frame: false,
     alwaysOnTop: true,
     skipTaskbar: true,
-    hasShadow: false,
+    hasShadow: true,
     resizable: true,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
