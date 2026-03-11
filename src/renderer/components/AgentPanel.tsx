@@ -7,7 +7,7 @@ interface AgentPanelProps {
   agents: AgentStatus[]
 }
 
-const MAX_VISIBLE = 5
+const MAX_VISIBLE = 12
 
 function AgentPanel({ agents }: AgentPanelProps): ReactNode {
   const [now, setNow] = useState(Date.now())
