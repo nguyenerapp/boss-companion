@@ -251,17 +251,27 @@ function createWindow(): void {
   })
 }
 
+let statusWatcher: ReturnType<typeof watch> | null = null
+
 function setupStatusWatcher(): void {
   if (debug) console.log(`[boss-companion] watching ${STATUS_FILE}`)
 
-  const watcher = watch(STATUS_FILE, {
+  statusWatcher = watch(STATUS_FILE, {
     persistent: true,
     ignoreInitial: false
   })
 
-  watcher.on('add', () => sendStatus())
-  watcher.on('change', () => sendStatus())
-  watcher.on('error', (err) => {
+  statusWatcher.on('add', () => sendStatus())
+  statusWatcher.on('change', () => sendStatus())
+  statusWatcher.on('unlink', () => {
+    if (debug) console.log('[boss-companion] status.json deleted — resetting to default')
+    lastStatus = null
+    if (mainWindow) {
+      mainWindow.webContents.send('status-update', { ...DEFAULT_STATUS, timestamp: Date.now() })
+    }
+    updateTrayMenu()
+  })
+  statusWatcher.on('error', (err) => {
     console.error('[boss-companion] watcher error:', err)
   })
 }
@@ -437,6 +447,13 @@ app.whenReady().then(async () => {
 
   // Send initial status after window loads
   setTimeout(sendStatus, 1000)
+})
+
+app.on('before-quit', () => {
+  if (statusWatcher) {
+    statusWatcher.close()
+    statusWatcher = null
+  }
 })
 
 app.on('window-all-closed', () => {
