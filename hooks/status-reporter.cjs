@@ -44,6 +44,8 @@ const TOOL_ACTIONS = {
   WebSearch: "Searching the web...",
   Agent: "Delegating to agent...",
   Task: "Working on subtask...",
+  TaskOutput: "Listening for events...",
+  TaskStop: "Stopping background task...",
   TodoWrite: "Planning tasks...",
   AskUserQuestion: "Has a question for you...",
   ToolSearch: "Discovering tools...",
@@ -61,6 +63,8 @@ const TOOL_STATES = {
   Edit: "working",
   Bash: "working",
   Task: "working",
+  TaskOutput: "waiting",
+  TaskStop: "working",
   TodoWrite: "working",
   Agent: "delegating",
   Skill: "sprinting",
@@ -107,6 +111,86 @@ function readEventLoopPhase() {
   return { phase: "idle" };
 }
 
+/**
+ * Write updated event-loop phase to eventloop.json so it persists across
+ * hook invocations and is visible to the companion app.
+ */
+function writeEventLoopPhase(phase, currentSlot) {
+  try {
+    const data = { phase, currentSlot: currentSlot || "", ts: Math.floor(Date.now() / 1000) };
+    const tmpFile = `${EVENTLOOP_FILE}.${randomUUID().slice(0, 8)}.tmp`;
+    require("fs").writeFileSync(tmpFile, JSON.stringify(data));
+    require("fs").renameSync(tmpFile, EVENTLOOP_FILE);
+  } catch {
+    // best effort
+  }
+}
+
+/**
+ * Infer the event-loop phase from tool usage context.
+ *
+ * BOSS cycles: launch event-wait (background) → TaskOutput (blocking wait)
+ * → process event → relaunch. The status-reporter fires on each tool call,
+ * so we can detect transitions:
+ *
+ *   TaskOutput           → "waiting"       (blocked on events)
+ *   Bash + event-wait    → "launching"     (starting event listener)
+ *   Agent                → "delegating"    (spawning subagent)
+ *   Read/Write on discord→ "discord"       (processing Discord IPC)
+ *   Skill                → "running_skill" (executing a timeslot skill)
+ *   Bash + git/gh        → "shipping"      (git operations)
+ *   Other tools          → "processing"    (general work)
+ */
+function inferEventLoopPhase(hookEvent, toolName, toolInput) {
+  if (hookEvent === "SessionStart") return { phase: "starting", slot: "" };
+  if (hookEvent === "SessionEnd") return { phase: "stopped", slot: "" };
+  if (hookEvent === "Stop") return { phase: "idle", slot: "" };
+  if (hookEvent === "SubagentStop") return { phase: "reviewing", slot: "" };
+  if (hookEvent === "Notification") return { phase: "blocked", slot: "needs input" };
+
+  if (!toolName) return null; // no tool context, keep existing phase
+
+  // TaskOutput = BOSS is blocking on event-wait (the "waiting" state)
+  if (toolName === "TaskOutput") return { phase: "waiting", slot: "listening" };
+
+  // Bash commands — inspect the command for context
+  if (toolName === "Bash" && toolInput?.command) {
+    const cmd = toolInput.command;
+    if (cmd.includes("event-wait")) return { phase: "launching", slot: "event-wait" };
+    if (cmd.includes("git ") || cmd.includes("gh ")) return { phase: "shipping", slot: "" };
+    if (cmd.includes("discord") || cmd.includes("outbox")) return { phase: "discord", slot: "" };
+    return { phase: "processing", slot: "" };
+  }
+
+  // Agent delegation
+  if (toolName === "Agent") {
+    const desc = toolInput?.description || "";
+    return { phase: "delegating", slot: desc.slice(0, 30) };
+  }
+
+  // Skill execution (timeslot skills)
+  if (toolName === "Skill") {
+    const skill = toolInput?.skill || "";
+    return { phase: "running_skill", slot: skill };
+  }
+
+  // Discord IPC file access
+  if ((toolName === "Read" || toolName === "Write" || toolName === "Edit") && toolInput?.file_path) {
+    const fp = toolInput.file_path;
+    if (fp.includes("discord") || fp.includes("outbox") || fp.includes("free-queries")) {
+      return { phase: "discord", slot: "" };
+    }
+  }
+
+  // General tool usage = processing
+  if (hookEvent === "PreToolUse") return { phase: "processing", slot: "" };
+
+  // PostToolUse = thinking (between tool calls)
+  if (hookEvent === "PostToolUse") return { phase: "thinking", slot: "" };
+
+  return null; // no change
+}
+
 // Serialized write queue to prevent corruption
 let writeChain = Promise.resolve();
 
@@ -135,19 +219,36 @@ async function atomicWriteFile(filePath, data) {
   await rename(tmpFile, filePath);
 }
 
-async function writeStatus(state, action, extraFields = {}) {
+async function writeStatus(state, action, extraFields = {}, eventLoopOverride = null) {
   const task = writeChain.then(async () => {
     await ensureStatusDir();
 
     // Merge with current status to preserve fields we don't update
     const current = (await readCurrentStatus()) || {};
 
+    // Use inferred event-loop phase if provided, otherwise read from file
+    let eventLoop;
+    if (eventLoopOverride) {
+      // Merge inferred phase with existing eventloop data (preserve nextSlotTime, upcomingSlots)
+      const existing = readEventLoopPhase();
+      eventLoop = {
+        ...existing,
+        phase: eventLoopOverride.phase,
+        ...(eventLoopOverride.slot ? { currentSlot: eventLoopOverride.slot } : {}),
+        ts: Math.floor(Date.now() / 1000),
+      };
+      // Persist so subsequent calls without inference still show the latest phase
+      writeEventLoopPhase(eventLoop.phase, eventLoop.currentSlot || "");
+    } else {
+      eventLoop = readEventLoopPhase();
+    }
+
     const data = {
       state,
       action,
       agents: activeAgents,
       discord: current.discord || { pending: 0 },
-      eventLoop: readEventLoopPhase(),
+      eventLoop,
       tokens: current.tokens || { context: 0, output: 0 },
       timestamp: Date.now(),
       ...extraFields,
@@ -256,6 +357,9 @@ async function handleEvent(event) {
     transcript_path,
   } = event;
 
+  // Infer event-loop phase from current tool context
+  const elPhase = inferEventLoopPhase(hook_event_name, tool_name, tool_input);
+
   // Fast path for SubagentStop — skip expensive transcript parsing and Discord checks.
   // Agent state update is the only thing that matters here.
   const isSubagentStop = hook_event_name === "SubagentStop";
@@ -276,7 +380,7 @@ async function handleEvent(event) {
       // Processing user input — map to 'discord' state since BOSS
       // primarily receives input via Discord IPC
       const state = discordPending > 0 ? "discord" : "thinking";
-      await writeStatus(state, "Processing input...", extraFields);
+      await writeStatus(state, "Processing input...", extraFields, elPhase);
       break;
     }
 
@@ -316,16 +420,16 @@ async function handleEvent(event) {
         action = `Running skill: ${tool_input.skill}`;
       }
 
-      await writeStatus(state, action, extraFields);
+      await writeStatus(state, action, extraFields, elPhase);
       break;
     }
 
     case "PostToolUse": {
       if (tool_response && tool_response.success === false) {
-        await writeStatus("error", "Something went wrong...", extraFields);
+        await writeStatus("error", "Something went wrong...", extraFields, elPhase);
       } else {
         // After tool use, BOSS is typically thinking about next action
-        await writeStatus("thinking", "Thinking...", extraFields);
+        await writeStatus("thinking", "Thinking...", extraFields, elPhase);
       }
       break;
     }
@@ -352,35 +456,35 @@ async function handleEvent(event) {
           ? `Reviewing... (${runningCount} agents active)`
           : "Agent completed. Reviewing...";
 
-      await writeStatus("reviewing", action, extraFields);
+      await writeStatus("reviewing", action, extraFields, elPhase);
       break;
     }
 
     case "Stop": {
-      await writeStatus("done", "All done!", extraFields);
+      await writeStatus("done", "All done!", extraFields, elPhase);
       break;
     }
 
     case "SessionStart": {
       activeAgents = [];
       saveAgents();
-      await writeStatus("idle", "Session started!", extraFields);
+      await writeStatus("idle", "Session started!", extraFields, elPhase);
       break;
     }
 
     case "SessionEnd": {
       activeAgents = [];
       saveAgents();
-      await writeStatus("idle", "Session ended", extraFields);
+      await writeStatus("idle", "Session ended", extraFields, elPhase);
       break;
     }
 
     case "Notification": {
       const { notification_type } = event;
       if (notification_type === "permission_prompt") {
-        await writeStatus("waiting", "Needs your permission...", extraFields);
+        await writeStatus("waiting", "Needs your permission...", extraFields, elPhase);
       } else if (notification_type === "elicitation_dialog") {
-        await writeStatus("waiting", "Has a question for you...", extraFields);
+        await writeStatus("waiting", "Has a question for you...", extraFields, elPhase);
       }
       break;
     }

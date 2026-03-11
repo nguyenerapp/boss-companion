@@ -65,9 +65,24 @@ export function isValidStatus(obj: unknown): boolean {
  * Phase colors for event loop display
  */
 export const PHASE_COLORS: Record<string, string> = {
+  // Schedule phases (from timeslots.yaml)
   work_hours: '#34d399',
   off_hours: '#60a5fa',
-  weekend: '#f59e0b'
+  weekend: '#f59e0b',
+  // Event-loop operational phases (from status-reporter hook)
+  waiting: '#9ca3af',       // Blocked on TaskOutput, listening for events
+  launching: '#60a5fa',     // Starting event-wait-ws.py
+  processing: '#f97316',    // General tool work
+  thinking: '#a78bfa',      // Between tool calls
+  delegating: '#818cf8',    // Spawning subagent
+  discord: '#5865F2',       // Reading/writing Discord IPC
+  reviewing: '#f59e0b',     // Reviewing agent output
+  running_skill: '#34d399', // Executing a timeslot skill
+  shipping: '#22c55e',      // Git/GitHub operations
+  starting: '#38bdf8',      // Session starting up
+  stopped: '#6b7280',       // Session ended
+  blocked: '#ef4444',       // Waiting on user input/permission
+  idle: '#6b7280',          // No activity
 }
 
 /**
