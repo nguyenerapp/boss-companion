@@ -79,11 +79,16 @@ function loadAgents() {
   try {
     if (existsSync(AGENTS_FILE)) {
       activeAgents = JSON.parse(require("fs").readFileSync(AGENTS_FILE, "utf-8"));
-      // Auto-cleanup: remove completed/failed agents older than 2 minutes
+      // Auto-cleanup: remove completed/failed agents older than 2 minutes,
+      // and remove "running" agents older than 30 minutes (likely missed SubagentStop)
       const twoMinAgo = Date.now() - 2 * 60 * 1000;
+      const thirtyMinAgo = Date.now() - 30 * 60 * 1000;
       const before = activeAgents.length;
       activeAgents = activeAgents.filter(
-        (a) => a.state === "running" || a.startedAt > twoMinAgo
+        (a) => {
+          if (a.state === "running") return a.startedAt > thirtyMinAgo;
+          return a.startedAt > twoMinAgo;
+        }
       );
       if (activeAgents.length !== before) saveAgents();
     }
@@ -441,10 +446,15 @@ async function handleEvent(event) {
         lastRunning.state =
           tool_response?.success === false ? "failed" : "completed";
       }
-      // Clean up agents completed more than 5 minutes ago
-      const fiveMinAgo = Date.now() - 5 * 60 * 1000;
+      // Clean up agents completed more than 2 minutes ago,
+      // and "running" agents older than 30 minutes (missed SubagentStop)
+      const twoMinAgo2 = Date.now() - 2 * 60 * 1000;
+      const thirtyMinAgo2 = Date.now() - 30 * 60 * 1000;
       activeAgents = activeAgents.filter(
-        (a) => a.state === "running" || a.startedAt > fiveMinAgo
+        (a) => {
+          if (a.state === "running") return a.startedAt > thirtyMinAgo2;
+          return a.startedAt > twoMinAgo2;
+        }
       );
       saveAgents();
 
