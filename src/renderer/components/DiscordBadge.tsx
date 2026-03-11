@@ -10,6 +10,7 @@ function DiscordBadge({ discord }: DiscordBadgeProps): ReactNode {
   const [isNew, setIsNew] = useState(false)
   const [showDot, setShowDot] = useState(false)
   const prevCountRef = useRef(discord.pending)
+  const pulseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     // Detect new messages: current count > previous count
@@ -17,9 +18,16 @@ function DiscordBadge({ discord }: DiscordBadgeProps): ReactNode {
       setIsNew(true)
       setShowDot(true)
 
+      // Clear any previous timer to prevent race condition
+      if (pulseTimerRef.current) {
+        clearTimeout(pulseTimerRef.current)
+      }
+
       // Stop the pulse animation after 3 seconds
-      const timer = setTimeout(() => setIsNew(false), 3000)
-      return () => clearTimeout(timer)
+      pulseTimerRef.current = setTimeout(() => {
+        setIsNew(false)
+        pulseTimerRef.current = null
+      }, 3000)
     }
 
     // Count dropped — messages were read, clear the dot
@@ -29,6 +37,15 @@ function DiscordBadge({ discord }: DiscordBadgeProps): ReactNode {
 
     prevCountRef.current = discord.pending
   }, [discord.pending])
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (pulseTimerRef.current) {
+        clearTimeout(pulseTimerRef.current)
+      }
+    }
+  }, [])
 
   if (discord.pending === 0 && !showDot) return null
 
