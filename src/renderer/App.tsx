@@ -28,7 +28,7 @@ const STATE_EMOJI: Record<BossState, string> = {
 }
 
 function App(): ReactNode {
-  const { status, previousState } = useStatus()
+  const { status, previousState, isStale } = useStatus()
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isDraggingRef = useRef(false)
   const [displayMode, setDisplayMode] = useState<DisplayMode>('css-art')
@@ -170,8 +170,11 @@ function App(): ReactNode {
       onContextMenu={handleContextMenu}
     >
       {/* Status bubble */}
-      <div className="status-bubble" style={{ borderColor: stateColor }}>
-        <span className="status-action">{status.action}</span>
+      <div className="status-bubble" style={{ borderColor: isStale ? '#6b7280' : stateColor }}>
+        {isStale && (
+          <span className="status-stale-indicator">Stale / Disconnected</span>
+        )}
+        <span className="status-action">{isStale ? 'No updates for 5+ minutes' : status.action}</span>
       </div>
 
       {/* Pet character area — draggable */}

@@ -18,6 +18,22 @@
   transition: border-color 0.4s ease;
 }
 
+.status-stale-indicator {
+  color: #f59e0b;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-bottom: 2px;
+  animation: stale-blink 2s ease-in-out infinite;
+}
+
+@keyframes stale-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 .status-action {
   color: #e5e7eb;
   font-size: 11px;

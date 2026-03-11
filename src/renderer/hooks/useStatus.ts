@@ -11,15 +11,21 @@ const DEFAULT_STATUS: BossStatus = {
   timestamp: Date.now()
 }
 
+/** Status is considered stale if older than 5 minutes */
+const STALE_THRESHOLD_MS = 5 * 60 * 1000
+
 interface UseStatusResult {
   status: BossStatus
   previousState: BossState | null
+  isStale: boolean
 }
 
 export function useStatus(): UseStatusResult {
   const [status, setStatus] = useState<BossStatus>(DEFAULT_STATUS)
   const [previousState, setPreviousState] = useState<BossState | null>(null)
+  const [isStale, setIsStale] = useState(false)
   const currentStateRef = useRef<BossState>(DEFAULT_STATUS.state)
+  const staleTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     // Fetch initial status
@@ -35,10 +41,29 @@ export function useStatus(): UseStatusResult {
         setTimeout(() => setPreviousState(null), 400)
       }
       setStatus(newStatus)
+      // Fresh update received — not stale
+      setIsStale(false)
     })
 
     return unsubscribe
   }, [])
 
-  return { status, previousState }
+  // Periodically check if the last status update is stale
+  useEffect(() => {
+    const checkStale = (): void => {
+      const age = Date.now() - status.timestamp
+      setIsStale(age > STALE_THRESHOLD_MS)
+    }
+
+    // Check immediately
+    checkStale()
+
+    // Re-check every 30 seconds
+    staleTimerRef.current = setInterval(checkStale, 30_000)
+    return () => {
+      if (staleTimerRef.current) clearInterval(staleTimerRef.current)
+    }
+  }, [status.timestamp])
+
+  return { status, previousState, isStale }
 }
