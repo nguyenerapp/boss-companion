@@ -261,18 +261,30 @@ function createWindow(): void {
 }
 
 let statusWatcher: ReturnType<typeof watch> | null = null
+let pollingInterval: ReturnType<typeof setInterval> | null = null
 
 function setupStatusWatcher(): void {
-  if (debug) console.log(`[boss-companion] watching ${STATUS_FILE}`)
+  // P1 fix: Watch the DIRECTORY instead of the file.
+  // On macOS, atomic writes (temp file + rename) can cause chokidar to lose
+  // track of a watched file. Watching the directory catches rename events.
+  if (debug) console.log(`[boss-companion] watching directory ${STATUS_DIR} for status.json changes`)
 
-  statusWatcher = watch(STATUS_FILE, {
+  statusWatcher = watch(STATUS_DIR, {
     persistent: true,
-    ignoreInitial: false
+    ignoreInitial: false,
+    depth: 0
   })
 
-  statusWatcher.on('add', () => sendStatus())
-  statusWatcher.on('change', () => sendStatus())
-  statusWatcher.on('unlink', () => {
+  const handleFileEvent = (filePath: string): void => {
+    // Only react to status.json changes
+    if (!filePath.endsWith('status.json')) return
+    sendStatus()
+  }
+
+  statusWatcher.on('add', handleFileEvent)
+  statusWatcher.on('change', handleFileEvent)
+  statusWatcher.on('unlink', (filePath: string) => {
+    if (!filePath.endsWith('status.json')) return
     if (debug) console.log('[boss-companion] status.json deleted — resetting to default')
     lastStatus = null
     if (mainWindow) {
@@ -283,6 +295,12 @@ function setupStatusWatcher(): void {
   statusWatcher.on('error', (err) => {
     console.error('[boss-companion] watcher error:', err)
   })
+
+  // P1 fix: 60-second polling fallback in case the file watcher misses an update
+  pollingInterval = setInterval(() => {
+    if (debug) console.log('[boss-companion] polling fallback — re-reading status.json')
+    sendStatus()
+  }, 60_000)
 }
 
 async function sendStatus(): Promise<void> {
@@ -462,6 +480,10 @@ app.on('before-quit', () => {
   if (statusWatcher) {
     statusWatcher.close()
     statusWatcher = null
+  }
+  if (pollingInterval) {
+    clearInterval(pollingInterval)
+    pollingInterval = null
   }
 })
 

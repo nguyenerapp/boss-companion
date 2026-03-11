@@ -11,8 +11,17 @@ const DEFAULT_STATUS: BossStatus = {
   timestamp: Date.now()
 }
 
-/** Status is considered stale if older than 5 minutes */
+/** Default stale threshold: 5 minutes */
 const STALE_THRESHOLD_MS = 5 * 60 * 1000
+/** Extended threshold for event-loop phase: 10 minutes (event-wait blocks up to 5 min between heartbeats) */
+const EVENT_LOOP_STALE_THRESHOLD_MS = 10 * 60 * 1000
+
+/** Phases that indicate BOSS is in a long-blocking event-wait */
+const EVENT_LOOP_PHASES = ['event-loop', 'event-wait', 'waiting']
+
+function getStaleThreshold(phase: string): number {
+  return EVENT_LOOP_PHASES.includes(phase) ? EVENT_LOOP_STALE_THRESHOLD_MS : STALE_THRESHOLD_MS
+}
 
 interface UseStatusResult {
   status: BossStatus
@@ -48,11 +57,13 @@ export function useStatus(): UseStatusResult {
     return unsubscribe
   }, [])
 
-  // Periodically check if the last status update is stale
+  // Periodically check if the last status update is stale (context-aware threshold)
   useEffect(() => {
     const checkStale = (): void => {
       const age = Date.now() - status.timestamp
-      setIsStale(age > STALE_THRESHOLD_MS)
+      const phase = status.eventLoop?.phase ?? 'idle'
+      const threshold = getStaleThreshold(phase)
+      setIsStale(age > threshold)
     }
 
     // Check immediately
@@ -63,7 +74,7 @@ export function useStatus(): UseStatusResult {
     return () => {
       if (staleTimerRef.current) clearInterval(staleTimerRef.current)
     }
-  }, [status.timestamp])
+  }, [status.timestamp, status.eventLoop?.phase])
 
   return { status, previousState, isStale }
 }
