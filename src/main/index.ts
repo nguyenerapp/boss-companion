@@ -213,7 +213,12 @@ function createWindow(): void {
 
   const scaledWidth = Math.round(BASE_WIDTH * currentScale)
 
+  // Discord screen share detection: skipTaskbar removed because on macOS it sets
+  // NSWindow.collectionBehavior to .transient, which excludes the window from
+  // CGWindowListCopyWindowInfo / ScreenCaptureKit enumeration. The title property
+  // ensures the window has an identifiable name in the picker.
   mainWindow = new BrowserWindow({
+    title: 'BOSS Companion',
     width: scaledWidth,
     height: Math.round(400 * currentScale),
     x: width - 300,
@@ -221,7 +226,6 @@ function createWindow(): void {
     transparent: true,
     frame: false,
     alwaysOnTop: true,
-    skipTaskbar: true,
     hasShadow: true,
     resizable: true,
     webPreferences: {
@@ -232,6 +236,11 @@ function createWindow(): void {
   })
 
   mainWindow.setIgnoreMouseEvents(false)
+
+  // Ensure the window is shareable for Discord/OBS screen capture.
+  // setContentProtection(false) sets NSWindow.sharingType = .readOnly on macOS,
+  // making the window visible to ScreenCaptureKit / CGWindowListCopyWindowInfo.
+  mainWindow.setContentProtection(false)
 
   // Sync window size when Electron zoom level changes (CMD+/-)
   mainWindow.webContents.on('zoom-changed', () => {
