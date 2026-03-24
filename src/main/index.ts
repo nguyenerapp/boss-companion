@@ -20,6 +20,8 @@ let currentScale: number = 1.0
 
 const BASE_WIDTH = 280
 
+const trayIconCache = new Map<number, Electron.NativeImage>()
+
 const DEFAULT_STATUS: BossStatus = {
   state: 'idle',
   action: 'Waiting for BOSS...',
@@ -90,6 +92,9 @@ function currentPrefsSnapshot(): Preferences {
  * Create a simple text-based tray icon using NativeImage
  */
 function createTrayIcon(badge: number = 0): Electron.NativeImage {
+  const cached = trayIconCache.get(badge)
+  if (cached) return cached
+
   // 22x22 is the standard macOS tray icon size
   const size = 22
   const canvas = Buffer.alloc(size * size * 4, 0) // RGBA
@@ -152,6 +157,7 @@ function createTrayIcon(badge: number = 0): Electron.NativeImage {
 
   const img = nativeImage.createFromBuffer(canvas, { width: size, height: size })
   img.setTemplateImage(true)
+  trayIconCache.set(badge, img)
   return img
 }
 
