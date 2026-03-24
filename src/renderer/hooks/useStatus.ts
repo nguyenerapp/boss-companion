@@ -38,7 +38,7 @@ export function useStatus(): UseStatusResult {
 
   useEffect(() => {
     // Fetch initial status
-    window.electronAPI.getStatus().then(setStatus).catch(console.error)
+    window.electronAPI.getStatus().then(setStatus).catch((error) => console.error('[useStatus] Failed to load initial status:', error))
 
     // Subscribe to updates
     const unsubscribe = window.electronAPI.onStatusUpdate((newStatus) => {

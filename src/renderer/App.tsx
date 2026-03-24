@@ -74,7 +74,7 @@ function App(): ReactNode {
     window.electronAPI.getPreferences().then((prefs) => {
       setDisplayMode(prefs.displayMode)
       setScale(prefs.scale ?? 1.0)
-    }).catch(console.error)
+    }).catch((error) => console.error('[App] Failed to load preferences:', error))
 
     const unsubscribe = window.electronAPI.onPreferencesUpdate((prefs) => {
       setDisplayMode(prefs.displayMode)
