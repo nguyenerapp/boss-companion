@@ -45,17 +45,39 @@ function App(): ReactNode {
 
     const BUFFER = 10
 
+    let rafId: number | null = null
+    let lastWidth = 0
+    let lastHeight = 0
+
     const observer = new ResizeObserver(() => {
-      // getBoundingClientRect returns visual (post-transform) dimensions
-      const rect = el.getBoundingClientRect()
-      const scaledWidth = Math.ceil(rect.width)
-      const scaledHeight = Math.ceil(rect.height)
-      // Send already-scaled dimensions — main process uses them directly
-      window.electronAPI.resizeWindow(scaledWidth, scaledHeight + BUFFER)
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId)
+      }
+
+      rafId = requestAnimationFrame(() => {
+        rafId = null
+        // getBoundingClientRect returns visual (post-transform) dimensions
+        const rect = el.getBoundingClientRect()
+        const scaledWidth = Math.ceil(rect.width)
+        const scaledHeight = Math.ceil(rect.height)
+
+        // Only send IPC if dimensions actually changed
+        if (scaledWidth !== lastWidth || scaledHeight !== lastHeight) {
+          lastWidth = scaledWidth
+          lastHeight = scaledHeight
+          // Send already-scaled dimensions — main process uses them directly
+          window.electronAPI.resizeWindow(scaledWidth, scaledHeight + BUFFER)
+        }
+      })
     })
 
     observer.observe(el)
-    return () => observer.disconnect()
+    return () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId)
+      }
+      observer.disconnect()
+    }
   }, [scale])
 
   // Listen for zoom changes (CMD+/-) and re-measure
