@@ -38,7 +38,7 @@ export function useStatus(): UseStatusResult {
 
   useEffect(() => {
     // Fetch initial status
-    window.electronAPI.getStatus().then(setStatus).catch(console.error)
+    window.electronAPI.getStatus().then(setStatus).catch((err) => console.error('[useStatus] Failed to fetch initial status:', err))
 
     // Subscribe to updates
     const unsubscribe = window.electronAPI.onStatusUpdate((newStatus) => {
@@ -72,7 +72,7 @@ export function useStatus(): UseStatusResult {
     // Re-check every 30 seconds
     staleTimerRef.current = setInterval(checkStale, 30_000)
     return () => {
-      if (staleTimerRef.current) clearInterval(staleTimerRef.current)
+      if (staleTimerRef.current) { clearInterval(staleTimerRef.current); staleTimerRef.current = null }
     }
   }, [status.timestamp, status.eventLoop?.phase])
 
