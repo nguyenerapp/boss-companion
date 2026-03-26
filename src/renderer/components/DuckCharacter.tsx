@@ -2,8 +2,13 @@ import type { ReactNode } from 'react'
 import type { BossState } from '../../shared/types'
 import './DuckCharacter.css'
 
+/**
+ * Properties for the DuckCharacter component.
+ */
 interface DuckCharacterProps {
+  /** The current state of the boss, which determines the duck's animation and appearance. */
   state: BossState
+  /** The primary color applied to the duck via CSS variable. */
   color: string
 }
 
@@ -11,6 +16,16 @@ interface DuckCharacterProps {
  * CSS-art Call Duck character for each BOSS state.
  * Call ducks: round body, tiny wings, big expressive eyes, short orange bill.
  * Rendered within a ~64x64px area using CSS shapes — no image files.
+ *
+ * This component visually represents the different states of the BOSS system
+ * ('thinking', 'delegating', 'reviewing', 'waiting', 'idle', 'sprinting', 'discord', 'working', 'reading', 'done', 'error')
+ * through CSS animations and distinct features (eyes, bill, accessory).
+ * It uses helper functions to conditionally render the correct parts based on the `state` prop.
+ *
+ * @param {DuckCharacterProps} props - The properties for the duck character.
+ * @param {BossState} props.state - The state defining the duck's mood and accessory.
+ * @param {string} props.color - The base color for the duck body applied via a CSS variable.
+ * @returns {ReactNode} The rendered duck character.
  */
 function DuckCharacter({ state, color }: DuckCharacterProps): ReactNode {
   return (
@@ -37,7 +52,14 @@ function DuckCharacter({ state, color }: DuckCharacterProps): ReactNode {
     </div>
   )
 }
-
+/**
+ * Determines and returns the appropriate eye elements based on the given boss state.
+ * These are rendered using CSS classes that control the shape and animation of the eyes
+ * to express the duck's mood (e.g., blinking, squinting, happy).
+ *
+ * @param {BossState} state - The current state of the boss.
+ * @returns {ReactNode} The span elements representing the eyes.
+ */
 function renderEyes(state: BossState): ReactNode {
   switch (state) {
     case 'thinking':
@@ -127,6 +149,13 @@ function renderEyes(state: BossState): ReactNode {
   }
 }
 
+/**
+ * Determines and returns the appropriate bill (beak) element based on the boss state.
+ * The bill's appearance changes (e.g., open, smiling, frowning) to match the duck's mood.
+ *
+ * @param {BossState} state - The current state of the boss.
+ * @returns {ReactNode} The span element representing the bill.
+ */
 function renderBill(state: BossState): ReactNode {
   switch (state) {
     case 'discord':
@@ -144,6 +173,14 @@ function renderBill(state: BossState): ReactNode {
   }
 }
 
+/**
+ * Determines and returns the appropriate accessory or icon element based on the boss state.
+ * Accessories are visual cues (like a question mark, magnifier, or checkmark) that
+ * accompany the duck character to clearly indicate its current action or mood.
+ *
+ * @param {BossState} state - The current state of the boss.
+ * @returns {ReactNode} The element representing the accessory, or null if none is needed.
+ */
 function renderAccessory(state: BossState): ReactNode {
   switch (state) {
     case 'thinking':
