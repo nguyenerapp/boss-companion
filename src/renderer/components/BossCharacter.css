@@ -443,3 +443,16 @@
   0% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.8); }
   100% { box-shadow: 0 0 8px rgba(34, 197, 94, 0.3); }
 }
+
+/* === Accessibility: Reduced Motion === */
+@media (prefers-reduced-motion: reduce) {
+  .boss-char,
+  .boss-char *,
+  .boss-char *::before,
+  .boss-char *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

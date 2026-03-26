@@ -14,11 +14,17 @@ interface BossCharacterProps {
  */
 function BossCharacter({ state, color }: BossCharacterProps): ReactNode {
   return (
-    <div className={`boss-char boss-char--${state}`} style={{ '--state-color': color } as React.CSSProperties}>
-      <div className="boss-char__face">
+    <div
+      className={`boss-char boss-char--${state}`}
+      style={{ '--state-color': color } as React.CSSProperties}
+      role="img"
+      aria-label={`Boss character state: ${state}`}
+      aria-live="polite"
+    >
+      <div className="boss-char__face" aria-hidden="true">
         {renderFace(state)}
       </div>
-      <div className="boss-char__accessory">
+      <div className="boss-char__accessory" aria-hidden="true">
         {renderAccessory(state)}
       </div>
     </div>
