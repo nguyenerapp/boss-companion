@@ -243,7 +243,7 @@ function createWindow(): void {
   mainWindow.setContentProtection(false)
 
   // Sync window size when Electron zoom level changes (CMD+/-)
-  mainWindow.webContents.on('zoom-changed', () => {
+  mainWindow.webContents.on('zoom-changed', (_event: Electron.Event): void => {
     if (!mainWindow) return
     // Notify renderer to re-measure and send new dimensions
     mainWindow.webContents.send('zoom-changed')
@@ -255,7 +255,7 @@ function createWindow(): void {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
-  mainWindow.on('closed', () => {
+  mainWindow.on('closed', (): void => {
     mainWindow = null
   })
 }
@@ -283,7 +283,7 @@ function setupStatusWatcher(): void {
 
   statusWatcher.on('add', handleFileEvent)
   statusWatcher.on('change', handleFileEvent)
-  statusWatcher.on('unlink', (filePath: string) => {
+  statusWatcher.on('unlink', (filePath: string): void => {
     if (!filePath.endsWith('status.json')) return
     if (debug) console.log('[boss-companion] status.json deleted — resetting to default')
     lastStatus = null
@@ -292,12 +292,12 @@ function setupStatusWatcher(): void {
     }
     updateTrayMenu()
   })
-  statusWatcher.on('error', (err) => {
+  statusWatcher.on('error', (err: unknown): void => {
     console.error('[boss-companion] watcher error:', err)
   })
 
   // P1 fix: 60-second polling fallback in case the file watcher misses an update
-  pollingInterval = setInterval(() => {
+  pollingInterval = setInterval((): void => {
     if (debug) console.log('[boss-companion] polling fallback — re-reading status.json')
     sendStatus()
   }, 60_000)
@@ -318,7 +318,7 @@ async function sendStatus(): Promise<void> {
 }
 
 // IPC handlers
-ipcMain.handle('get-status', async () => {
+ipcMain.handle('get-status', async (_event: Electron.IpcMainInvokeEvent): Promise<BossStatus> => {
   return await readStatus()
 })
 
@@ -326,17 +326,17 @@ ipcMain.on('report-error', (_event, error: string, errorInfo: string) => {
   console.error('[boss-companion] Renderer error reported:', error, errorInfo)
 })
 
-ipcMain.on('copy-to-clipboard', (_event, text: string) => {
+ipcMain.on('copy-to-clipboard', (_event: Electron.IpcMainEvent, text: string): void => {
   clipboard.writeText(text)
 })
 
-ipcMain.on('minimize-window', () => {
+ipcMain.on('minimize-window', (_event: Electron.IpcMainEvent): void => {
   mainWindow?.hide()
   isMinimized = true
   updateTrayMenu()
 })
 
-ipcMain.on('restore-window', () => {
+ipcMain.on('restore-window', (_event: Electron.IpcMainEvent): void => {
   mainWindow?.show()
   isMinimized = false
   updateTrayMenu()
@@ -344,11 +344,11 @@ ipcMain.on('restore-window', () => {
 
 let resizeTimer: ReturnType<typeof setTimeout> | null = null
 
-ipcMain.on('resize-window', (_event, width: number, height: number) => {
+ipcMain.on('resize-window', (_event: Electron.IpcMainEvent, width: number, height: number): void => {
   if (!mainWindow) return
   // Debounce to prevent rapid resize calls during zoom
   if (resizeTimer) clearTimeout(resizeTimer)
-  resizeTimer = setTimeout(() => {
+  resizeTimer = setTimeout((): void => {
     if (!mainWindow) return
     try {
       const zoomFactor = mainWindow.webContents.getZoomFactor()
@@ -362,16 +362,16 @@ ipcMain.on('resize-window', (_event, width: number, height: number) => {
 })
 
 // Preference IPC handlers
-ipcMain.handle('get-preferences', async () => {
+ipcMain.handle('get-preferences', async (_event: Electron.IpcMainInvokeEvent): Promise<Preferences> => {
   return await readPreferences()
 })
 
-ipcMain.handle('set-preferences', async (_event, prefs: Preferences) => {
+ipcMain.handle('set-preferences', async (_event: Electron.IpcMainInvokeEvent, prefs: Preferences): Promise<void> => {
   await writePreferences(prefs)
 })
 
 // Context menu
-ipcMain.on('show-context-menu', (event) => {
+ipcMain.on('show-context-menu', (event: Electron.IpcMainEvent): void => {
   const win = BrowserWindow.fromWebContents(event.sender)
   if (!win) return
 
@@ -444,14 +444,14 @@ ipcMain.on('show-context-menu', (event) => {
 // Drag support — uses screen coordinates from the main process
 let dragState: { startX: number; startY: number; winX: number; winY: number } | null = null
 
-ipcMain.on('drag-start', () => {
+ipcMain.on('drag-start', (_event: Electron.IpcMainEvent): void => {
   if (!mainWindow) return
   const { x, y } = screen.getCursorScreenPoint()
   const [winX, winY] = mainWindow.getPosition()
   dragState = { startX: x, startY: y, winX, winY }
 })
 
-ipcMain.on('drag-move', () => {
+ipcMain.on('drag-move', (_event: Electron.IpcMainEvent): void => {
   if (!mainWindow || !dragState) return
   const { x, y } = screen.getCursorScreenPoint()
   const newX = dragState.winX + (x - dragState.startX)
@@ -459,11 +459,11 @@ ipcMain.on('drag-move', () => {
   mainWindow.setPosition(newX, newY)
 })
 
-ipcMain.on('drag-end', () => {
+ipcMain.on('drag-end', (_event: Electron.IpcMainEvent): void => {
   dragState = null
 })
 
-app.whenReady().then(async () => {
+app.whenReady().then(async (): Promise<void> => {
   app.setName('BOSS Companion')
   await ensureStatusDir()
 
@@ -480,7 +480,7 @@ app.whenReady().then(async () => {
   setTimeout(sendStatus, 1000)
 })
 
-app.on('before-quit', () => {
+app.on('before-quit', (_event: Electron.Event): void => {
   if (statusWatcher) {
     statusWatcher.close()
     statusWatcher = null
