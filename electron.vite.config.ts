@@ -2,7 +2,15 @@ import { defineConfig } from 'electron-vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 
+/**
+ * Global configuration for electron-vite.
+ * Defines separate build configurations for the main process, preload scripts, and the renderer.
+ */
 export default defineConfig({
+  /**
+   * Main process configuration.
+   * Specifies the entry point for the Electron main process which handles system-level operations.
+   */
   main: {
     build: {
       rollupOptions: {
@@ -12,6 +20,10 @@ export default defineConfig({
       }
     }
   },
+  /**
+   * Preload script configuration.
+   * Bundles scripts that act as a bridge between the main process and the renderer (IPC).
+   */
   preload: {
     build: {
       lib: {
@@ -26,6 +38,10 @@ export default defineConfig({
       }
     }
   },
+  /**
+   * Renderer process configuration.
+   * Defines build settings for the React frontend, including the root directory and plugins.
+   */
   renderer: {
     root: resolve(__dirname, 'src/renderer'),
     build: {
