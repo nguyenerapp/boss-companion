@@ -1,16 +1,24 @@
 // BOSS-specific pet states (superset of agent-paperclip states)
-export type BossState =
-  | 'thinking'
-  | 'delegating'
-  | 'reviewing'
-  | 'waiting'
-  | 'idle'
-  | 'sprinting'
-  | 'discord'
-  | 'working'
-  | 'reading'
-  | 'done'
-  | 'error'
+export const BOSS_STATES = [
+  'thinking',
+  'delegating',
+  'reviewing',
+  'waiting',
+  'idle',
+  'sprinting',
+  'discord',
+  'working',
+  'reading',
+  'done',
+  'error'
+] as const
+
+export type BossState = typeof BOSS_STATES[number]
+
+export function isBossState(value: any): value is BossState {
+  return BOSS_STATES.includes(value)
+}
+
 
 export interface AgentStatus {
   id: string
@@ -47,7 +55,13 @@ export interface BossStatus {
 }
 
 // Display mode for character rendering
-export type DisplayMode = 'css-art' | 'emoji' | 'minimal' | 'call-duck' | 'meme-pack'
+export const DISPLAY_MODES = ['css-art', 'emoji', 'minimal', 'call-duck', 'meme-pack'] as const
+
+export type DisplayMode = typeof DISPLAY_MODES[number]
+
+export function isDisplayMode(value: any): value is DisplayMode {
+  return DISPLAY_MODES.includes(value)
+}
 
 export interface Preferences {
   displayMode: DisplayMode
