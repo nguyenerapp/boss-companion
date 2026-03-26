@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Electron main process setup, window management, IPC handlers,
+ * and application lifecycle events.
+ */
 import { app, BrowserWindow, ipcMain, screen, Menu, Tray, nativeImage, clipboard } from 'electron'
 import { join } from 'path'
 import { watch } from 'chokidar'
@@ -208,6 +212,10 @@ function updateTrayMenu(): void {
   tray.setToolTip(`BOSS Companion - ${lastStatus?.state ?? 'idle'}: ${lastStatus?.action ?? 'Waiting...'}`)
 }
 
+/**
+ * Creates and configures the main transparent, frameless BrowserWindow.
+ * Handles screen positioning and zoom synchronization.
+ */
 function createWindow(): void {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize
 
@@ -317,6 +325,11 @@ async function sendStatus(): Promise<void> {
   updateTrayMenu()
 }
 
+/**
+ * IPC Handlers
+ * Manage communication between the main process and the renderer.
+ * Handles status retrieval, clipboard, window controls, resize, preferences, and drag support.
+ */
 // IPC handlers
 ipcMain.handle('get-status', async () => {
   return await readStatus()
@@ -459,6 +472,10 @@ ipcMain.on('drag-end', () => {
   dragState = null
 })
 
+/**
+ * Application Lifecycle Events
+ * Handles application startup, cleanup before quit, and macOS-specific window restoration.
+ */
 app.whenReady().then(async () => {
   app.setName('BOSS Companion')
   await ensureStatusDir()
@@ -476,6 +493,9 @@ app.whenReady().then(async () => {
   setTimeout(sendStatus, 1000)
 })
 
+/**
+ * Cleanup file watcher and polling interval before quit.
+ */
 app.on('before-quit', () => {
   if (statusWatcher) {
     statusWatcher.close()
@@ -487,12 +507,18 @@ app.on('before-quit', () => {
   }
 })
 
+/**
+ * Quit when all windows are closed, except on macOS.
+ */
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
 })
 
+/**
+ * Restore window on macOS when dock icon is clicked.
+ */
 app.on('activate', () => {
   if (mainWindow === null) {
     createWindow()
