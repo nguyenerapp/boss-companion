@@ -51,5 +51,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const handler = (): void => { callback() }
     ipcRenderer.on('zoom-changed', handler)
     return () => { ipcRenderer.removeListener('zoom-changed', handler) }
+  },
+  reportError: (error: string, errorInfo: string): void => {
+    ipcRenderer.send('report-error', error, errorInfo)
   }
 })
