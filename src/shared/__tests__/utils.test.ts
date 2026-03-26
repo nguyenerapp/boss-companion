@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import {
   formatElapsed,
   formatCountdown,
@@ -39,6 +39,14 @@ describe('formatElapsed', () => {
   it('handles future timestamps gracefully (clamps to 0)', () => {
     const now = 1000000
     expect(formatElapsed(now + 5000, now)).toBe('0s ago')
+  })
+
+  it('uses Date.now() by default if now is not provided', () => {
+    const now = 1000000000000
+    vi.useFakeTimers()
+    vi.setSystemTime(now)
+    expect(formatElapsed(now - 15000)).toBe('15s ago')
+    vi.useRealTimers()
   })
 })
 
@@ -84,6 +92,7 @@ describe('isValidBossState', () => {
     expect(isValidBossState(undefined)).toBe(false)
     expect(isValidBossState(42)).toBe(false)
     expect(isValidBossState({})).toBe(false)
+    expect(isValidBossState([])).toBe(false)
   })
 })
 
@@ -117,6 +126,7 @@ describe('isValidStatus', () => {
   it('rejects non-object', () => {
     expect(isValidStatus('string')).toBe(false)
     expect(isValidStatus(42)).toBe(false)
+    expect(isValidStatus(undefined)).toBe(false)
   })
 
   it('rejects missing state', () => {
