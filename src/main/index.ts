@@ -322,6 +322,10 @@ ipcMain.handle('get-status', async () => {
   return await readStatus()
 })
 
+ipcMain.on('report-error', (_event, error: string, errorInfo: string) => {
+  console.error('[boss-companion] Renderer error reported:', error, errorInfo)
+})
+
 ipcMain.on('copy-to-clipboard', (_event, text: string) => {
   clipboard.writeText(text)
 })
