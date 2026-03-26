@@ -1,7 +1,24 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { BossStatus, StatusCallback, Preferences } from '../shared/types'
 
-contextBridge.exposeInMainWorld('electronAPI', {
+export interface ElectronAPI {
+  getStatus: () => Promise<BossStatus>
+  onStatusUpdate: (callback: StatusCallback) => () => void
+  dragStart: () => void
+  dragMove: () => void
+  dragEnd: () => void
+  copyToClipboard: (text: string) => void
+  showContextMenu: () => void
+  minimizeWindow: () => void
+  restoreWindow: () => void
+  resizeWindow: (width: number, height: number) => void
+  getPreferences: () => Promise<Preferences>
+  setPreferences: (prefs: Preferences) => Promise<void>
+  onPreferencesUpdate: (callback: (prefs: Preferences) => void) => () => void
+  onZoomChanged: (callback: () => void) => () => void
+}
+
+const api: ElectronAPI = {
   getStatus: (): Promise<BossStatus> => ipcRenderer.invoke('get-status'),
   onStatusUpdate: (callback: StatusCallback): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, status: BossStatus): void => {
@@ -52,4 +69,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('zoom-changed', handler)
     return () => { ipcRenderer.removeListener('zoom-changed', handler) }
   }
-})
+}
+
+contextBridge.exposeInMainWorld('electronAPI', api)
