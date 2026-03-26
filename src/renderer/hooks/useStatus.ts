@@ -29,6 +29,24 @@ interface UseStatusResult {
   isStale: boolean
 }
 
+/**
+ * Custom hook to manage the BOSS status state.
+ *
+ * Provides the current BOSS status, the immediate previous state (for transition handling),
+ * and a boolean indicating whether the status is considered stale.
+ *
+ * State transitions:
+ * - When a state change occurs (e.g., from 'idle' to 'running'), `previousState` is set to the old state.
+ * - This `previousState` is retained for 400ms to allow UI elements to transition/animate smoothly.
+ * - After 400ms, `previousState` is cleared back to `null`.
+ *
+ * Polling and Stale logic:
+ * - A background interval runs every 30 seconds to check the age of the `status.timestamp`.
+ * - The stale threshold is dynamic: 5 minutes by default, but extended to 10 minutes if
+ *   the `eventLoop.phase` indicates a long-blocking wait.
+ *
+ * @returns {UseStatusResult} An object containing the current status, the previous state, and staleness flag.
+ */
 export function useStatus(): UseStatusResult {
   const [status, setStatus] = useState<BossStatus>(DEFAULT_STATUS)
   const [previousState, setPreviousState] = useState<BossState | null>(null)
