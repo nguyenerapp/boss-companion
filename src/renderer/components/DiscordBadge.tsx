@@ -53,12 +53,14 @@ function DiscordBadge({ discord }: DiscordBadgeProps): ReactNode {
     <div
       className={`discord-badge ${isNew ? 'discord-badge--new' : ''}`}
       title={discord.lastMessage ? `Last: ${discord.lastMessage}` : undefined}
+      role="status"
     >
+      <span className="sr-only">Discord connection state: active</span>
       <span className="discord-badge__icon">&#128172;</span>
       {discord.pending > 0 && (
         <span className="discord-badge__count">{discord.pending}</span>
       )}
-      {showDot && <span className="discord-badge__dot" />}
+      {showDot && <span className="discord-badge__dot" aria-label="unread messages" />}
     </div>
   )
 }
