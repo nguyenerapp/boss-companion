@@ -2,7 +2,7 @@
  * Shared utilities for BOSS Companion
  */
 
-import type { BossState } from './types'
+import type { BossState, BossStatus } from './types'
 
 /**
  * Format elapsed time as a human-readable relative string
@@ -50,7 +50,7 @@ export function isValidBossState(value: unknown): value is BossState {
 /**
  * Validate a BossStatus-like object has required fields
  */
-export function isValidStatus(obj: unknown): boolean {
+export function isValidStatus(obj: unknown): obj is BossStatus {
   if (obj === null || typeof obj !== 'object') return false
   const s = obj as Record<string, unknown>
   return (
