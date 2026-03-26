@@ -55,9 +55,19 @@ function MemePackCharacter({ state, color }: MemePackCharacterProps): ReactNode 
         overflow: 'hidden'
       }}
     >
+      <style>{`
+        @media (prefers-reduced-motion: reduce) {
+          .meme-pack {
+            transition: none !important;
+          }
+          .meme-pack img {
+            transition: none !important;
+          }
+        }
+      `}</style>
       <img
         src={src}
-        alt={state}
+        alt={`Meme reaction for ${state} state`}
         style={{
           width: 64,
           height: 64,

@@ -14,8 +14,8 @@ interface DuckCharacterProps {
  */
 function DuckCharacter({ state, color }: DuckCharacterProps): ReactNode {
   return (
-    <div className={`duck duck--${state}`} style={{ '--state-color': color } as React.CSSProperties}>
-      <div className="duck__body">
+    <div role="img" aria-label={`Duck character in ${state} state`} className={`duck duck--${state}`} style={{ '--state-color': color } as React.CSSProperties}>
+      <div className="duck__body" aria-hidden="true">
         <div className="duck__head">
           <div className="duck__eyes">
             {renderEyes(state)}
@@ -27,11 +27,11 @@ function DuckCharacter({ state, color }: DuckCharacterProps): ReactNode {
         <div className="duck__wing duck__wing--left" />
         <div className="duck__wing duck__wing--right" />
       </div>
-      <div className="duck__feet">
+      <div className="duck__feet" aria-hidden="true">
         <span className="duck__foot duck__foot--left" />
         <span className="duck__foot duck__foot--right" />
       </div>
-      <div className="duck__accessory">
+      <div className="duck__accessory" aria-hidden="true">
         {renderAccessory(state)}
       </div>
     </div>

@@ -542,3 +542,10 @@
   0%, 100% { box-shadow: 0 0 8px rgba(239, 68, 68, 0.3); }
   50% { box-shadow: 0 0 16px rgba(239, 68, 68, 0.7); }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .duck *, .duck::before, .duck::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
