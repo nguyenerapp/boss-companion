@@ -3,13 +3,30 @@ import type { AgentStatus } from '../../shared/types'
 import { formatElapsed, AGENT_STATE_COLORS } from '../../shared/utils'
 import './AgentPanel.css'
 
+/**
+ * Props for the AgentPanel component.
+ */
 interface AgentPanelProps {
+  /**
+   * List of current agent statuses to display.
+   */
   agents: AgentStatus[]
 }
 
 const MAX_VISIBLE = 12
 
+/**
+ * Displays a summary panel of active agents, their states, and elapsed running time.
+ * Handles copying agent IDs to the clipboard.
+ *
+ * @param props - Component props containing the list of agents.
+ * @returns The rendered agent panel or null if no agents exist.
+ */
 function AgentPanel({ agents }: AgentPanelProps): ReactNode {
+  /**
+   * Current timestamp used to calculate elapsed time for running agents.
+   * Updates every second when at least one agent is running.
+   */
   const [now, setNow] = useState(Date.now())
 
   // Update elapsed times every second for running agents
@@ -26,6 +43,11 @@ function AgentPanel({ agents }: AgentPanelProps): ReactNode {
   const visibleAgents = agents.slice(0, MAX_VISIBLE)
   const overflow = agents.length - MAX_VISIBLE
 
+  /**
+   * Copies the specified agent ID to the system clipboard via Electron IPC.
+   *
+   * @param agentId - The unique identifier of the agent to copy.
+   */
   const handleCopyId = (agentId: string): void => {
     window.electronAPI.copyToClipboard(agentId)
   }
