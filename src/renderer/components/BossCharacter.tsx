@@ -2,15 +2,42 @@ import type { ReactNode } from 'react'
 import type { BossState } from '../../shared/types'
 import './BossCharacter.css'
 
+/**
+ * Props for the BossCharacter component.
+ */
 interface BossCharacterProps {
+  /** The current state of the BOSS agent, dictating the facial expression and accessory. */
   state: BossState
+  /** The hex or rgb color string applied to the component's CSS variables. */
   color: string
 }
 
 /**
  * CSS-art character faces for each BOSS state.
- * Each character is rendered within a ~64x64px area using
- * CSS shapes, gradients, and unicode — no image files.
+ *
+ * Component Purpose:
+ * Renders a CSS-based character representation of the current BOSS state.
+ * Each character is rendered within a ~64x64px area using CSS shapes, gradients,
+ * and unicode characters — without relying on external image files.
+ *
+ * Animation Logic:
+ * The component relies on external CSS for styling and animation. It dynamically
+ * applies a top-level class `boss-char--${state}` based on the current state.
+ * The `color` prop is passed to the root element as the `--state-color` CSS variable,
+ * which the stylesheet uses to colorize parts of the character.
+ *
+ * Props:
+ * - `state`: Determines the active CSS class, face render, and accessory render.
+ * - `color`: Sets the `--state-color` CSS custom property.
+ *
+ * State Management:
+ * This is a purely stateless, presentational component. It maintains no internal
+ * React state and derives its entire rendering output directly from the provided props.
+ *
+ * @param props - Component properties.
+ * @param props.state - The active state of the BOSS agent.
+ * @param props.color - The theme color for the active state.
+ * @returns The rendered character component.
  */
 function BossCharacter({ state, color }: BossCharacterProps): ReactNode {
   return (
@@ -25,6 +52,12 @@ function BossCharacter({ state, color }: BossCharacterProps): ReactNode {
   )
 }
 
+/**
+ * Maps the current BOSS state to the corresponding CSS-art face elements.
+ *
+ * @param state - The active state of the BOSS agent.
+ * @returns A React node containing the specific eye and mouth elements for the state.
+ */
 function renderFace(state: BossState): ReactNode {
   switch (state) {
     case 'thinking':
@@ -150,6 +183,12 @@ function renderFace(state: BossState): ReactNode {
   }
 }
 
+/**
+ * Maps the current BOSS state to the corresponding CSS-art accessory element.
+ *
+ * @param state - The active state of the BOSS agent.
+ * @returns A React node containing the specific accessory for the state, or null.
+ */
 function renderAccessory(state: BossState): ReactNode {
   switch (state) {
     case 'thinking':
