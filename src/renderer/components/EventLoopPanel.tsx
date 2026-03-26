@@ -26,14 +26,25 @@ function EventLoopPanel({ eventLoop }: EventLoopPanelProps): ReactNode {
   return (
     <div className="event-loop-panel">
       {/* Phase indicator */}
-      <div className="event-loop__phase" style={{ borderColor: phaseColor }}>
+      <div
+        className="event-loop__phase"
+        style={{ borderColor: phaseColor }}
+        aria-live="polite"
+        tabIndex={0}
+        aria-label={`Current phase: ${phaseLabel}`}
+      >
         <span className="event-loop__phase-dot" style={{ background: phaseColor }} />
         <span className="event-loop__phase-label">{phaseLabel}</span>
       </div>
 
       {/* Current slot */}
       {eventLoop.currentSlot && (
-        <div className="event-loop__slot" style={{ borderColor: `${phaseColor}50` }}>
+        <div
+          className="event-loop__slot"
+          style={{ borderColor: `${phaseColor}50` }}
+          tabIndex={0}
+          aria-label={`Current slot: ${eventLoop.currentSlot}${timeUntilNext ? `, next in ${timeUntilNext}` : ''}`}
+        >
           <span className="event-loop__slot-name">{eventLoop.currentSlot}</span>
           {timeUntilNext && (
             <span className="event-loop__next-in" style={{ color: phaseColor }}>
@@ -45,9 +56,15 @@ function EventLoopPanel({ eventLoop }: EventLoopPanelProps): ReactNode {
 
       {/* Upcoming slots mini timeline */}
       {eventLoop.upcomingSlots && eventLoop.upcomingSlots.length > 0 && (
-        <div className="event-loop__upcoming">
+        <div className="event-loop__upcoming" role="list" aria-label="Upcoming slots">
           {eventLoop.upcomingSlots.slice(0, 3).map((slot, i) => (
-            <span key={i} className="event-loop__upcoming-slot">
+            <span
+              key={i}
+              className="event-loop__upcoming-slot"
+              role="listitem"
+              tabIndex={0}
+              aria-label={`Upcoming slot: ${slot}`}
+            >
               {slot}
             </span>
           ))}
