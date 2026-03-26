@@ -1,20 +1,36 @@
 {
   "compilerOptions": {
+    /** Sets the JavaScript version for output files. Using ES2020 to support modern features like optional chaining and nullish coalescing. */
     "target": "ES2020",
+    /** Changes how class fields are emitted. Uses standard ECMAScript semantics. */
     "useDefineForClassFields": true,
+    /** Specifies the standard library declarations to include. ES2020, DOM APIs, and iterables. */
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    /** Defines the module system for the program. ESNext allows for modern import/export syntax. */
     "module": "ESNext",
+    /** Skips type checking of declaration files (.d.ts) to speed up compilation. */
     "skipLibCheck": true,
+    /** Determines how modules get resolved. "bundler" works best for Vite and modern bundlers. */
     "moduleResolution": "bundler",
+    /** Allows importing TypeScript files with a .ts extension instead of requiring .js extension in imports. */
     "allowImportingTsExtensions": true,
+    /** Enables importing JSON files as modules. */
     "resolveJsonModule": true,
+    /** Ensures each file can be safely transpiled independently without relying on other files. Important for tools like Vite. */
     "isolatedModules": true,
+    /** Tells TypeScript not to output JavaScript files, since Vite handles the actual building/bundling. */
     "noEmit": true,
+    /** Configures how JSX is transformed. "react-jsx" supports React 17+ JSX transform without needing to import React. */
     "jsx": "react-jsx",
+    /** Enables all strict type-checking options for better type safety. */
     "strict": true,
+    /** Reports errors on unused local variables to keep code clean. */
     "noUnusedLocals": true,
+    /** Reports errors on unused parameters in functions. */
     "noUnusedParameters": true,
+    /** Reports errors for fallthrough cases in switch statements to prevent bugs. */
     "noFallthroughCasesInSwitch": true
   },
+  /** Specifies the files or directories to include in the compilation. */
   "include": ["src"]
 }
