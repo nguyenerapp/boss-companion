@@ -38,12 +38,7 @@ export function useStatus(): UseStatusResult {
 
   useEffect(() => {
     // Fetch initial status
-    window.electronAPI
-      .getStatus()
-      .then(setStatus)
-      .catch((err) => {
-        console.error('[boss-companion] Failed to fetch initial status:', err)
-      })
+    window.electronAPI.getStatus().then(setStatus).catch((err) => console.error('[boss-companion] Failed to fetch initial status:', err))
 
     // Subscribe to updates
     const unsubscribe = window.electronAPI.onStatusUpdate((newStatus) => {

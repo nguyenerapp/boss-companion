@@ -71,15 +71,10 @@ function App(): ReactNode {
 
   // Load preferences on mount and listen for updates
   useEffect(() => {
-    window.electronAPI
-      .getPreferences()
-      .then((prefs) => {
-        setDisplayMode(prefs.displayMode)
-        setScale(prefs.scale ?? 1.0)
-      })
-      .catch((err) => {
-        console.error('[boss-companion] Failed to load preferences:', err)
-      })
+    window.electronAPI.getPreferences().then((prefs) => {
+      setDisplayMode(prefs.displayMode)
+      setScale(prefs.scale ?? 1.0)
+    }).catch((err) => console.error('[boss-companion] Failed to load preferences:', err))
 
     const unsubscribe = window.electronAPI.onPreferencesUpdate((prefs) => {
       setDisplayMode(prefs.displayMode)
