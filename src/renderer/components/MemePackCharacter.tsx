@@ -28,14 +28,28 @@ const STATE_IMAGES: Record<BossState, string> = {
   error
 }
 
+/**
+ * Component properties for the MemePackCharacter.
+ */
 interface MemePackCharacterProps {
+  /** The current state of the BOSS agent, used to determine which meme image to display. */
   state: BossState
+  /** The theme color associated with the current state, used for the box shadow glow effect. */
   color: string
 }
 
 /**
  * Meme Pack display mode — renders custom reaction images for each BOSS state.
- * PNG stills for most states, animated GIFs for sprinting and discord.
+ *
+ * Rendering logic:
+ * - Maps the current `state` to a specific image import (PNG stills for most states, animated GIFs for sprinting and discord).
+ * - Falls back to the 'idle' image if the provided state is not found.
+ * - Applies a glowing box-shadow effect using the provided `color` prop with a 40% opacity (hex `40`).
+ *
+ * @param props - Component properties.
+ * @param props.state - The current state of the BOSS agent.
+ * @param props.color - The theme color for the glow effect.
+ * @returns The rendered meme pack character component.
  */
 function MemePackCharacter({ state, color }: MemePackCharacterProps): ReactNode {
   const src = STATE_IMAGES[state] || STATE_IMAGES.idle

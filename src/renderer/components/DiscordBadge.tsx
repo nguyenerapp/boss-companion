@@ -2,10 +2,26 @@ import { useState, useEffect, useRef, type ReactNode } from 'react'
 import type { DiscordStatus } from '../../shared/types'
 import './DiscordBadge.css'
 
+/**
+ * Component properties for the Discord badge.
+ */
 interface DiscordBadgeProps {
+  /** The current Discord status including pending unread message count and last message preview. */
   discord: DiscordStatus
 }
 
+/**
+ * Renders a small badge showing the number of unread Discord messages.
+ *
+ * Includes logic to pulse/highlight when new messages arrive:
+ * - Compares current pending count to previous count.
+ * - Shows a "new" indicator dot and pulses for 3 seconds when the count increases.
+ * - Hides the badge entirely if there are 0 pending messages and no "new" animation is active.
+ *
+ * @param props - Component properties.
+ * @param props.discord - The current Discord status object.
+ * @returns The rendered badge component, or null if there are no pending messages.
+ */
 function DiscordBadge({ discord }: DiscordBadgeProps): ReactNode {
   const [isNew, setIsNew] = useState(false)
   const [showDot, setShowDot] = useState(false)
