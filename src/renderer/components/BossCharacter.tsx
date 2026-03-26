@@ -14,7 +14,12 @@ interface BossCharacterProps {
  */
 function BossCharacter({ state, color }: BossCharacterProps): ReactNode {
   return (
-    <div className={`boss-char boss-char--${state}`} style={{ '--state-color': color } as React.CSSProperties}>
+    <div
+      className={`boss-char boss-char--${state}`}
+      style={{ '--state-color': color } as React.CSSProperties}
+      role="img"
+      aria-label={`Boss character in ${state} state`}
+    >
       <div className="boss-char__face">
         {renderFace(state)}
       </div>
