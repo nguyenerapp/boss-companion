@@ -13,65 +13,65 @@ export type BossState =
   | 'error'
 
 export interface AgentStatus {
-  id: string
-  description: string
-  state: 'running' | 'completed' | 'failed'
-  startedAt: number
+  readonly id: string
+  readonly description: string
+  readonly state: 'running' | 'completed' | 'failed'
+  readonly startedAt: number
 }
 
 export interface DiscordStatus {
-  pending: number
-  lastMessage?: string
+  readonly pending: number
+  readonly lastMessage?: string
 }
 
 export interface EventLoopStatus {
-  phase: string
-  currentSlot?: string
-  nextSlotTime?: number
-  upcomingSlots?: string[]
+  readonly phase: string
+  readonly currentSlot?: string
+  readonly nextSlotTime?: number
+  readonly upcomingSlots?: readonly string[]
 }
 
 export interface TokenUsage {
-  context: number
-  output: number
+  readonly context: number
+  readonly output: number
 }
 
 export interface BossStatus {
-  state: BossState
-  action: string
-  agents: AgentStatus[]
-  discord: DiscordStatus
-  eventLoop: EventLoopStatus
-  tokens: TokenUsage
-  timestamp: number
+  readonly state: BossState
+  readonly action: string
+  readonly agents: readonly AgentStatus[]
+  readonly discord: DiscordStatus
+  readonly eventLoop: EventLoopStatus
+  readonly tokens: TokenUsage
+  readonly timestamp: number
 }
 
 // Display mode for character rendering
 export type DisplayMode = 'css-art' | 'emoji' | 'minimal' | 'call-duck' | 'meme-pack'
 
 export interface Preferences {
-  displayMode: DisplayMode
-  scale?: number
+  readonly displayMode: DisplayMode
+  readonly scale?: number
 }
 
 // Callback types for IPC
 export type StatusCallback = (status: BossStatus) => void
 
 export interface ElectronAPI {
-  getStatus: () => Promise<BossStatus>
-  onStatusUpdate: (callback: StatusCallback) => () => void
-  dragStart: () => void
-  dragMove: () => void
-  dragEnd: () => void
-  copyToClipboard: (text: string) => void
-  showContextMenu: () => void
-  minimizeWindow: () => void
-  restoreWindow: () => void
-  resizeWindow: (width: number, height: number) => void
-  getPreferences: () => Promise<Preferences>
-  setPreferences: (prefs: Preferences) => Promise<void>
-  onPreferencesUpdate: (callback: (prefs: Preferences) => void) => () => void
-  onZoomChanged: (callback: () => void) => () => void
+  readonly getStatus: () => Promise<BossStatus>
+  readonly onStatusUpdate: (callback: StatusCallback) => () => void
+  readonly dragStart: () => void
+  readonly dragMove: () => void
+  readonly dragEnd: () => void
+  readonly copyToClipboard: (text: string) => void
+  readonly showContextMenu: () => void
+  readonly minimizeWindow: () => void
+  readonly restoreWindow: () => void
+  readonly resizeWindow: (width: number, height: number) => void
+  readonly getPreferences: () => Promise<Preferences>
+  readonly setPreferences: (prefs: Preferences) => Promise<void>
+  readonly onPreferencesUpdate: (callback: (prefs: Preferences) => void) => () => void
+  readonly onZoomChanged: (callback: () => void) => () => void
 }
 
 declare global {

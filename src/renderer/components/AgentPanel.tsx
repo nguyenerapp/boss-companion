@@ -4,7 +4,7 @@ import { formatElapsed, AGENT_STATE_COLORS } from '../../shared/utils'
 import './AgentPanel.css'
 
 interface AgentPanelProps {
-  agents: AgentStatus[]
+  agents: readonly AgentStatus[]
 }
 
 const MAX_VISIBLE = 12

@@ -56,10 +56,11 @@ async function readPreferences(): Promise<Preferences> {
       return { ...DEFAULT_PREFS }
     }
     // Validate scale
-    if (prefs.scale == null || ![0.8, 1.0, 1.3].includes(prefs.scale)) {
-      prefs.scale = 1.0
+    let scale = prefs.scale
+    if (scale == null || ![0.8, 1.0, 1.3].includes(scale)) {
+      scale = 1.0
     }
-    return prefs
+    return { ...prefs, scale }
   } catch {
     return { ...DEFAULT_PREFS }
   }
