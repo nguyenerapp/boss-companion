@@ -7,6 +7,9 @@ import type { BossState, BossStatus } from './types'
 /**
  * Format elapsed time as a human-readable relative string
  * e.g. "2s ago", "3m ago", "1h ago"
+ * @param startedAt - The timestamp when the event started
+ * @param now - The current timestamp
+ * @returns A human-readable relative string
  */
 export function formatElapsed(startedAt: number, now: number = Date.now()): string {
   const elapsed = Math.max(0, now - startedAt)
@@ -24,6 +27,8 @@ export function formatElapsed(startedAt: number, now: number = Date.now()): stri
 /**
  * Format a countdown duration
  * e.g. "45m", "1h 20m"
+ * @param ms - The duration in milliseconds
+ * @returns A formatted countdown string
  */
 export function formatCountdown(ms: number): string {
   if (ms <= 0) return 'now'
@@ -43,12 +48,19 @@ const VALID_STATES: ReadonlySet<string> = new Set<string>([
   'sprinting', 'discord', 'working', 'reading', 'done', 'error'
 ])
 
+/**
+ * Validate that a value is a valid BossState
+ * @param value - The value to check
+ * @returns True if the value is a valid BossState, false otherwise
+ */
 export function isValidBossState(value: unknown): value is BossState {
   return typeof value === 'string' && VALID_STATES.has(value)
 }
 
 /**
  * Validate a BossStatus-like object has required fields
+ * @param obj - The object to check
+ * @returns True if the object is a valid BossStatus, false otherwise
  */
 export function isValidStatus(obj: unknown): obj is BossStatus {
   if (obj === null || typeof obj !== 'object') return false

@@ -322,7 +322,7 @@ ipcMain.handle('get-status', async (_event: Electron.IpcMainInvokeEvent): Promis
   return await readStatus()
 })
 
-ipcMain.on('report-error', (_event, error: string, errorInfo: string) => {
+ipcMain.on('report-error', (_event: Electron.IpcMainEvent, error: string, errorInfo: string): void => {
   console.error('[boss-companion] Renderer error reported:', error, errorInfo)
 })
 
