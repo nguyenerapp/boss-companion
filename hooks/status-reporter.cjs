@@ -121,13 +121,24 @@ function readEventLoopPhase() {
  * hook invocations and is visible to the companion app.
  */
 function writeEventLoopPhase(phase, currentSlot) {
+  let tmpFile;
   try {
     const data = { phase, currentSlot: currentSlot || "", ts: Math.floor(Date.now() / 1000) };
-    const tmpFile = `${EVENTLOOP_FILE}.${randomUUID().slice(0, 8)}.tmp`;
+    tmpFile = `${EVENTLOOP_FILE}.${randomUUID().slice(0, 8)}.tmp`;
     require("fs").writeFileSync(tmpFile, JSON.stringify(data));
     require("fs").renameSync(tmpFile, EVENTLOOP_FILE);
   } catch {
     // best effort
+  } finally {
+    if (tmpFile) {
+      try {
+        if (require("fs").existsSync(tmpFile)) {
+          require("fs").unlinkSync(tmpFile);
+        }
+      } catch {
+        // ignore cleanup error
+      }
+    }
   }
 }
 
@@ -220,8 +231,18 @@ async function readCurrentStatus() {
  */
 async function atomicWriteFile(filePath, data) {
   const tmpFile = `${filePath}.${randomUUID().slice(0, 8)}.tmp`;
-  await writeFile(tmpFile, data);
-  await rename(tmpFile, filePath);
+  try {
+    await writeFile(tmpFile, data);
+    await rename(tmpFile, filePath);
+  } finally {
+    try {
+      if (require("fs").existsSync(tmpFile)) {
+        await require("fs/promises").unlink(tmpFile);
+      }
+    } catch {
+      // ignore cleanup error
+    }
+  }
 }
 
 async function writeStatus(state, action, extraFields = {}, eventLoopOverride = null) {
