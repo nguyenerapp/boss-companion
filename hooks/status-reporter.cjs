@@ -132,9 +132,7 @@ function writeEventLoopPhase(phase, currentSlot) {
   } finally {
     if (tmpFile) {
       try {
-        if (require("fs").existsSync(tmpFile)) {
-          require("fs").unlinkSync(tmpFile);
-        }
+        require("fs").unlinkSync(tmpFile);
       } catch {
         // ignore cleanup error
       }
@@ -236,9 +234,7 @@ async function atomicWriteFile(filePath, data) {
     await rename(tmpFile, filePath);
   } finally {
     try {
-      if (require("fs").existsSync(tmpFile)) {
-        await require("fs/promises").unlink(tmpFile);
-      }
+      await require("fs/promises").unlink(tmpFile);
     } catch {
       // ignore cleanup error
     }
