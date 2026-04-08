@@ -2,6 +2,9 @@ import electronConfig from '@electron-toolkit/eslint-config-ts';
 import reactPlugin from 'eslint-plugin-react';
 
 export default [
+  {
+    ignores: ['hooks/**', '*.config.ts', '*.config.js', 'out/**', 'dist/**'],
+  },
   ...electronConfig.configs.recommended,
   {
     plugins: {
