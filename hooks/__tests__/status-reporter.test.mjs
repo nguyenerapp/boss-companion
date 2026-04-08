@@ -152,6 +152,7 @@ describe("status-reporter", () => {
     });
 
     it("SessionEnd resets to idle", async () => {
+      await writeStatus("working", "Active session");
       await handleEvent({ hook_event_name: "SessionEnd" });
       const status = await readStatusFile();
       expect(status.state).toBe("idle");
