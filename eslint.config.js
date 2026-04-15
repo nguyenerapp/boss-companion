@@ -1,21 +1,26 @@
-import electronConfig from '@electron-toolkit/eslint-config-ts';
-import reactPlugin from 'eslint-plugin-react';
+import eslintConfigTs from '@electron-toolkit/eslint-config-ts';
+import pluginReact from 'eslint-plugin-react';
+
+const { configs } = eslintConfigTs;
 
 export default [
-  ...electronConfig.configs.recommended,
+  {
+    ignores: ['out/**', 'dist/**', 'hooks/**', '*.config.ts', '*.config.js', '*.config.mjs', '*.config.cjs'],
+  },
+  ...configs.recommended,
   {
     plugins: {
-      react: reactPlugin,
+      react: pluginReact,
     },
-    languageOptions: reactPlugin.configs.flat.recommended.languageOptions,
+    languageOptions: pluginReact.configs.flat.recommended.languageOptions,
     settings: {
       react: {
         version: '19.0',
       },
     },
     rules: {
-      ...reactPlugin.configs.flat.recommended.rules,
-      ...reactPlugin.configs.flat['jsx-runtime'].rules,
+      ...pluginReact.configs.flat.recommended.rules,
+      ...pluginReact.configs.flat['jsx-runtime'].rules,
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
