@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { app, BrowserWindow, Menu, Tray, screen, nativeImage } from 'electron'
+import { app, BrowserWindow, Menu, Tray, nativeImage } from 'electron'
 
 vi.mock('fs/promises', () => {
   return {
@@ -134,7 +134,7 @@ describe('Companion Tray Menu', () => {
 
     // We expect the menu to be built multiple times. The last one should have the populated state.
     const lastCallArgs = vi.mocked(Menu.buildFromTemplate).mock.calls.at(-1)!
-    const menuTemplate = lastCallArgs[0] as any[]
+    const menuTemplate = lastCallArgs[0] as Electron.MenuItemConstructorOptions[]
 
     expect(menuTemplate[0].label).toBe('ACTIVE: Testing')
     expect(menuTemplate[2].label).toBe('Hide Window')
@@ -153,7 +153,7 @@ describe('Companion Tray Menu', () => {
 
     // After hiding, the menu is updated, fetch the latest
     const updatedCallArgs = vi.mocked(Menu.buildFromTemplate).mock.calls.at(-1)!
-    const updatedMenuTemplate = updatedCallArgs[0] as any[]
+    const updatedMenuTemplate = updatedCallArgs[0] as Electron.MenuItemConstructorOptions[]
     expect(updatedMenuTemplate[2].label).toBe('Show Window')
 
     updatedMenuTemplate[2].click()

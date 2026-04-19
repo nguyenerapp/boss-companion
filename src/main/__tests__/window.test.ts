@@ -22,7 +22,7 @@ vi.mock('electron', () => {
   }
 
   const BrowserWindowConstructor = vi.fn(function() { return browserWindowMock })
-  ;(BrowserWindowConstructor as any).fromWebContents = vi.fn()
+  ;(BrowserWindowConstructor as unknown as { fromWebContents: unknown }).fromWebContents = vi.fn()
 
   let appReadyHandler: () => Promise<void>
   const appMock = {
@@ -43,14 +43,14 @@ vi.mock('electron', () => {
     }
   }
 
-  const ipcHandlers: Record<string, Function> = {}
+  const ipcHandlers: Record<string, (...args: unknown[]) => void> = {}
   const ipcMainMock = {
     on: vi.fn((channel, listener) => {
       ipcHandlers[channel] = listener
     }),
     handle: vi.fn(),
     // Expose trigger
-    emit: (channel: string, event: any, ...args: any[]) => {
+    emit: (channel: string, event: Electron.IpcMainEvent, ...args: unknown[]) => {
       if (ipcHandlers[channel]) ipcHandlers[channel](event, ...args)
     }
   }
@@ -116,7 +116,7 @@ describe('Main Process - Window Management', () => {
     await import('../index')
 
     // Trigger app ready
-    await (app as any).emitReady()
+    await (app as unknown as { emitReady: () => Promise<void> }).emitReady()
 
     // Verify window creation
     expect(BrowserWindow).toHaveBeenCalledTimes(1)
@@ -134,27 +134,27 @@ describe('Main Process - Window Management', () => {
 
   it('minimizes to tray via ipc', async () => {
     await import('../index')
-    await (app as any).emitReady()
+    await (app as unknown as { emitReady: () => Promise<void> }).emitReady()
 
     const winMock = vi.mocked(BrowserWindow).mock.results[0].value
 
     // Trigger minimize
-    ;(ipcMain as any).emit('minimize-window', {})
+    ;(ipcMain as unknown as { emit: (c: string, e: unknown) => void }).emit('minimize-window', {})
 
     expect(winMock.hide).toHaveBeenCalledTimes(1)
   })
 
   it('restores window via ipc', async () => {
     await import('../index')
-    await (app as any).emitReady()
+    await (app as unknown as { emitReady: () => Promise<void> }).emitReady()
 
     const winMock = vi.mocked(BrowserWindow).mock.results[0].value
 
     // Minimize first to set isMinimized state
-    ;(ipcMain as any).emit('minimize-window', {})
+    ;(ipcMain as unknown as { emit: (c: string, e: unknown) => void }).emit('minimize-window', {})
 
     // Restore
-    ;(ipcMain as any).emit('restore-window', {})
+    ;(ipcMain as unknown as { emit: (c: string, e: unknown) => void }).emit('restore-window', {})
 
     expect(winMock.show).toHaveBeenCalledTimes(1)
   })
