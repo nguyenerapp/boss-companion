@@ -212,6 +212,9 @@ async function ensureStatusDir() {
   if (!existsSync(STATUS_DIR)) {
     await mkdir(STATUS_DIR, { recursive: true });
   }
+  if (!existsSync(STATUS_FILE)) {
+    await writeFile(STATUS_FILE, "{}");
+  }
 }
 
 async function readCurrentStatus() {
