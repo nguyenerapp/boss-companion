@@ -150,7 +150,7 @@ describe('Main Process', () => {
     await import('../index')
 
     // Trigger whenReady
-    const whenReadyHandler = await mockApp.whenReady()
+    await mockApp.whenReady()
 
     expect(mockApp.setName).toHaveBeenCalledWith('BOSS Companion')
     // Ensure window is created
