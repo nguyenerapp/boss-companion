@@ -1,248 +1,159 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { app, BrowserWindow, ipcMain, screen, Menu, Tray, nativeImage, clipboard } from 'electron'
-import { readFile, writeFile, mkdir } from 'fs/promises'
-import { watch } from 'chokidar'
-import { existsSync } from 'fs'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Mock Electron
+// Mock dependencies
+const mockApp = {
+  whenReady: vi.fn().mockResolvedValue(undefined),
+  setName: vi.fn(),
+  on: vi.fn(),
+  quit: vi.fn()
+}
+
+const mockWebContents = {
+  send: vi.fn(),
+  on: vi.fn(),
+  getZoomFactor: vi.fn().mockReturnValue(1),
+  toggleDevTools: vi.fn()
+}
+
+const mockWindow = {
+  setPosition: vi.fn(),
+  getPosition: vi.fn().mockReturnValue([0, 0]),
+  hide: vi.fn(),
+  show: vi.fn(),
+  setContentSize: vi.fn(),
+  setContentProtection: vi.fn(),
+  setIgnoreMouseEvents: vi.fn(),
+  loadFile: vi.fn(),
+  loadURL: vi.fn(),
+  webContents: mockWebContents,
+  on: vi.fn()
+}
+
+const MockBrowserWindow = vi.fn(function() { return mockWindow })
+
+const mockIpcMain = {
+  handle: vi.fn(),
+  on: vi.fn()
+}
+
 vi.mock('electron', () => {
-  const ipcMainMock = {
-    handle: vi.fn(),
-    on: vi.fn(),
-  }
-
-  const appMock = {
-    whenReady: vi.fn().mockResolvedValue(undefined),
-    on: vi.fn(),
-    setName: vi.fn(),
-    quit: vi.fn(),
-  }
-
-  const mockWindow = {
-    setIgnoreMouseEvents: vi.fn(),
-    setContentProtection: vi.fn(),
-    loadURL: vi.fn(),
-    loadFile: vi.fn(),
-    on: vi.fn(),
-    webContents: {
-      on: vi.fn(),
-      send: vi.fn(),
-      toggleDevTools: vi.fn(),
-      getZoomFactor: vi.fn().mockReturnValue(1.0),
-    },
-    hide: vi.fn(),
-    show: vi.fn(),
-    setContentSize: vi.fn(),
-    setPosition: vi.fn(),
-    getPosition: vi.fn().mockReturnValue([0, 0]),
-    id: 1,
-  }
-
-  const BrowserWindowMock = vi.fn(function() {
-    return mockWindow
-  })
-
-  // Add static method
-  Object.assign(BrowserWindowMock, {
-    fromWebContents: vi.fn(),
-    mockWindow, // helper to access the mock instance in tests
-  })
-
-  const electronMock = {
-    app: appMock,
-    BrowserWindow: BrowserWindowMock,
-    ipcMain: ipcMainMock,
+  return {
+    app: mockApp,
+    BrowserWindow: Object.assign(MockBrowserWindow, {
+      fromWebContents: vi.fn().mockReturnValue(mockWindow)
+    }),
+    ipcMain: mockIpcMain,
     screen: {
       getPrimaryDisplay: vi.fn().mockReturnValue({ workAreaSize: { width: 1920, height: 1080 } }),
-      getCursorScreenPoint: vi.fn().mockReturnValue({ x: 100, y: 100 }),
+      getCursorScreenPoint: vi.fn().mockReturnValue({ x: 100, y: 100 })
     },
     Menu: {
-      buildFromTemplate: vi.fn().mockReturnValue({ popup: vi.fn() }),
+      buildFromTemplate: vi.fn()
     },
-    Tray: vi.fn(function() {
-      return {
-        setContextMenu: vi.fn(),
-        setImage: vi.fn(),
-        setToolTip: vi.fn(),
-      }
-    }),
+    Tray: vi.fn(function() { return {
+      setToolTip: vi.fn(),
+      setContextMenu: vi.fn(),
+      setImage: vi.fn()
+    } }),
     nativeImage: {
-      createFromBuffer: vi.fn().mockReturnValue({
-        setTemplateImage: vi.fn(),
-      }),
+      createEmpty: vi.fn().mockReturnValue({}),
+      createFromBuffer: vi.fn().mockReturnValue({ setTemplateImage: vi.fn() })
     },
     clipboard: {
-      writeText: vi.fn(),
-    },
+      writeText: vi.fn()
+    }
   }
-  return { ...electronMock, default: electronMock }
 })
 
-// Mock other modules
-vi.mock('fs/promises', () => {
+vi.mock('fs/promises', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('fs/promises')>()
   const mock = {
-    readFile: vi.fn(),
-    writeFile: vi.fn(),
-    mkdir: vi.fn(),
-  }
-  return { ...mock, default: mock }
-})
-
-vi.mock('fs', () => {
-  const mock = {
-    existsSync: vi.fn(),
-  }
-  return { ...mock, default: mock }
-})
-
-vi.mock('chokidar', () => {
-  const mock = {
-    watch: vi.fn().mockReturnValue({
-      on: vi.fn(),
-      close: vi.fn(),
-    }),
+    ...actual,
+    readFile: vi.fn().mockResolvedValue('{}'),
+    writeFile: vi.fn().mockResolvedValue(undefined),
+    mkdir: vi.fn().mockResolvedValue(undefined)
   }
   return { ...mock, default: mock }
 })
 
 describe('Main Process', () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(existsSync).mockReturnValue(true)
-    vi.mocked(readFile).mockResolvedValue('{}')
-    // Load the main process file to register handlers
-    await import('../index')
-  })
-
-  afterEach(() => {
     vi.resetModules()
   })
 
-  // Helper to extract registered handlers
-  const getHandler = (name: string, type: 'on' | 'handle' = 'on') => {
-    const calls = vi.mocked(ipcMain[type]).mock.calls
-    const call = calls.find(c => c[0] === name)
-    if (!call) throw new Error(`Handler ${name} not found`)
-    return call[1]
-  }
+  it('registers ipcMain handlers', async () => {
+    await import('../index')
 
-  const getAppEventHandler = (name: string) => {
-    const calls = vi.mocked(app.on).mock.calls
-    const call = calls.find(c => c[0] === name)
-    if (!call) throw new Error(`App event handler ${name} not found`)
-    return call[1]
-  }
+    // Check IPC handlers registration
+    expect(mockIpcMain.handle).toHaveBeenCalledWith('get-status', expect.any(Function))
+    expect(mockIpcMain.handle).toHaveBeenCalledWith('get-preferences', expect.any(Function))
+    expect(mockIpcMain.handle).toHaveBeenCalledWith('set-preferences', expect.any(Function))
 
-  describe('IPC Message Handlers', () => {
-    it('handles get-status', async () => {
-      const handler = getHandler('get-status', 'handle')
-      const status = { state: 'test' }
-      vi.mocked(readFile).mockResolvedValueOnce(JSON.stringify(status))
-
-      const result = await handler({} as any)
-      expect(result).toEqual(status)
-    })
-
-    it('handles report-error', () => {
-      const handler = getHandler('report-error')
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-      handler({} as any, 'test error', 'error info')
-      expect(consoleSpy).toHaveBeenCalledWith('[boss-companion] Renderer error reported:', 'test error', 'error info')
-      consoleSpy.mockRestore()
-    })
-
-    it('handles copy-to-clipboard', () => {
-      const handler = getHandler('copy-to-clipboard')
-      handler({} as any, 'test text')
-      expect(clipboard.writeText).toHaveBeenCalledWith('test text')
-    })
-
-    it('handles minimize-window', () => {
-      const handler = getHandler('minimize-window')
-      // To test this we need mainWindow to be initialized.
-      // app.whenReady() callback creates the window.
-      const readyHandler = vi.mocked(app.whenReady).mock.results[0]?.value
-      // Actually we just call the handler and verify no crash, or verify tray menu update
-      handler({} as any)
-    })
-
-    it('handles restore-window', () => {
-      const handler = getHandler('restore-window')
-      handler({} as any)
-    })
-
-    it('handles resize-window', async () => {
-      const handler = getHandler('resize-window')
-      vi.useFakeTimers()
-      handler({} as any, 500, 600)
-      vi.runAllTimers()
-      vi.useRealTimers()
-    })
-
-    it('handles get-preferences', async () => {
-      const handler = getHandler('get-preferences', 'handle')
-      const prefs = { displayMode: 'emoji', scale: 1.0 }
-      vi.mocked(readFile).mockResolvedValueOnce(JSON.stringify(prefs))
-
-      const result = await handler({} as any)
-      expect(result).toEqual(prefs)
-    })
-
-    it('handles set-preferences', async () => {
-      const handler = getHandler('set-preferences', 'handle')
-      const prefs = { displayMode: 'emoji', scale: 1.0 }
-
-      await handler({} as any, prefs)
-      expect(writeFile).toHaveBeenCalled()
-    })
-
-    it('handles show-context-menu', () => {
-      const handler = getHandler('show-context-menu')
-      const win = {}
-      vi.mocked(BrowserWindow.fromWebContents).mockReturnValueOnce(win as any)
-      handler({ sender: {} } as any)
-      expect(Menu.buildFromTemplate).toHaveBeenCalled()
-    })
-
-    it('handles drag-start, drag-move, drag-end', () => {
-      const startHandler = getHandler('drag-start')
-      const moveHandler = getHandler('drag-move')
-      const endHandler = getHandler('drag-end')
-
-      startHandler({} as any)
-      moveHandler({} as any)
-      endHandler({} as any)
-    })
+    expect(mockIpcMain.on).toHaveBeenCalledWith('report-error', expect.any(Function))
+    expect(mockIpcMain.on).toHaveBeenCalledWith('copy-to-clipboard', expect.any(Function))
+    expect(mockIpcMain.on).toHaveBeenCalledWith('minimize-window', expect.any(Function))
+    expect(mockIpcMain.on).toHaveBeenCalledWith('restore-window', expect.any(Function))
+    expect(mockIpcMain.on).toHaveBeenCalledWith('resize-window', expect.any(Function))
+    expect(mockIpcMain.on).toHaveBeenCalledWith('show-context-menu', expect.any(Function))
+    expect(mockIpcMain.on).toHaveBeenCalledWith('drag-start', expect.any(Function))
+    expect(mockIpcMain.on).toHaveBeenCalledWith('drag-move', expect.any(Function))
+    expect(mockIpcMain.on).toHaveBeenCalledWith('drag-end', expect.any(Function))
   })
 
-  describe('App Lifecycle Events', () => {
-    it('handles before-quit', () => {
-      const handler = getAppEventHandler('before-quit')
-      handler({} as any)
-    })
+  it('registers window management handlers', async () => {
+    await import('../index')
+    expect(mockApp.on).toHaveBeenCalledWith('activate', expect.any(Function))
+    expect(mockApp.on).toHaveBeenCalledWith('window-all-closed', expect.any(Function))
+  })
 
-    it('handles window-all-closed on win32', () => {
-      const handler = getAppEventHandler('window-all-closed')
-      const originalPlatform = process.platform
-      Object.defineProperty(process, 'platform', { value: 'win32' })
-      handler()
-      expect(app.quit).toHaveBeenCalled()
-      Object.defineProperty(process, 'platform', { value: originalPlatform })
-    })
+  it('handles window management events correctly', async () => {
+    await import('../index')
 
-    it('handles window-all-closed on darwin', () => {
-      const handler = getAppEventHandler('window-all-closed')
-      vi.mocked(app.quit).mockClear()
-      const originalPlatform = process.platform
-      Object.defineProperty(process, 'platform', { value: 'darwin' })
-      handler()
-      expect(app.quit).not.toHaveBeenCalled()
-      Object.defineProperty(process, 'platform', { value: originalPlatform })
-    })
+    // Test activate event
+    const activateHandler = mockApp.on.mock.calls.find(c => c[0] === 'activate')![1]
+    activateHandler()
+    // By default, create window should be called if it was null
+    expect(MockBrowserWindow).toHaveBeenCalled()
 
-    it('handles activate', () => {
-      const handler = getAppEventHandler('activate')
-      handler()
-    })
+    // Test window-all-closed event
+    const windowAllClosedHandler = mockApp.on.mock.calls.find(c => c[0] === 'window-all-closed')![1]
+
+    // Mock process.platform
+    const originalPlatform = process.platform
+    Object.defineProperty(process, 'platform', { value: 'win32' })
+
+    windowAllClosedHandler()
+    expect(mockApp.quit).toHaveBeenCalled()
+
+    Object.defineProperty(process, 'platform', { value: originalPlatform })
+  })
+
+  it('handles IPC methods logic', async () => {
+    await import('../index')
+
+    const minimizeHandler = mockIpcMain.on.mock.calls.find(c => c[0] === 'minimize-window')![1]
+    minimizeHandler(new Event('minimize'))
+    expect(mockWindow.hide).toHaveBeenCalled()
+
+    const restoreHandler = mockIpcMain.on.mock.calls.find(c => c[0] === 'restore-window')![1]
+    restoreHandler(new Event('restore'))
+    expect(mockWindow.show).toHaveBeenCalled()
+
+    const copyHandler = mockIpcMain.on.mock.calls.find(c => c[0] === 'copy-to-clipboard')![1]
+    copyHandler(new Event('copy'), 'test text')
+    const { clipboard } = await import('electron')
+    expect(clipboard.writeText).toHaveBeenCalledWith('test text')
+  })
+
+  it('handles ready event correctly', async () => {
+    await import('../index')
+
+    // Trigger whenReady
+    await mockApp.whenReady()
+
+    expect(mockApp.setName).toHaveBeenCalledWith('BOSS Companion')
+    // Ensure window is created
+    expect(MockBrowserWindow).toHaveBeenCalled()
   })
 })

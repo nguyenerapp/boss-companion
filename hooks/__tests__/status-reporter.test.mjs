@@ -50,6 +50,42 @@ describe("status-reporter", () => {
     });
   });
 
+
+  describe("writeStatus error handling", () => {
+    it("handles corrupted status.json gracefully", async () => {
+      const { mkdir, writeFile } = await import("fs/promises");
+      await mkdir(STATUS_DIR, { recursive: true });
+      await writeFile(STATUS_FILE, "{ bad json");
+
+      await writeStatus("working", "Recovering");
+
+      const status = await readStatusFile();
+      expect(status.state).toBe("working");
+      expect(status.action).toBe("Recovering");
+    });
+
+    it("cleans up temp file if rename fails", async () => {
+      const { mkdir, rmdir, readdir, unlink } = await import("fs/promises");
+      await mkdir(STATUS_DIR, { recursive: true });
+      try { await unlink(STATUS_FILE); } catch {}
+      await mkdir(STATUS_FILE, { recursive: true });
+
+      let didThrow = false;
+      try {
+        await writeStatus("working", "Should fail rename");
+      } catch (err) {
+        didThrow = true;
+      }
+      expect(didThrow).toBe(true);
+
+      const files = await readdir(STATUS_DIR);
+      const tmpFiles = files.filter(f => f.endsWith('.tmp'));
+      expect(tmpFiles.length).toBe(0);
+
+      await rmdir(STATUS_FILE);
+    });
+  });
+
   describe("handleEvent - PreToolUse", () => {
     it("maps Agent tool to delegating state", async () => {
       await handleEvent({
