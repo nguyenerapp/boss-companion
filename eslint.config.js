@@ -4,23 +4,19 @@ import pluginReact from 'eslint-plugin-react';
 const { configs } = eslintConfigTs;
 
 export default [
-  {
-    ignores: ['out/**', 'dist/**', 'hooks/**', '*.config.ts', '*.config.js', '*.config.mjs', '*.config.cjs'],
-  },
   ...configs.recommended,
+  pluginReact.configs.flat.recommended,
+  pluginReact.configs.flat['jsx-runtime'],
   {
-    plugins: {
-      react: pluginReact,
-    },
-    languageOptions: pluginReact.configs.flat.recommended.languageOptions,
+    ignores: ['hooks/**', '*.config.ts', '*.config.js', 'out/**', 'dist/**', 'node_modules/**'],
+  },
+  {
     settings: {
       react: {
         version: '19.0',
       },
     },
     rules: {
-      ...pluginReact.configs.flat.recommended.rules,
-      ...pluginReact.configs.flat['jsx-runtime'].rules,
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
